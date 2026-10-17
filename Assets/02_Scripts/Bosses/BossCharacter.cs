@@ -229,7 +229,7 @@ namespace Codice.Bosses
                 foreach (var collider in GetComponentsInChildren<Collider>()) collider.enabled = false;
                 Cleanup();
                 var killer = hit.source ? hit.source.GetComponentInParent<PlayerCharacter>() : null;
-                if (killer && killer.State.IsAlive) killer.State.AddGold(goldReward);
+                if (killer && killer.State.IsAlive) Codice.Mechanics.GoldPickup.Drop(transform.position, goldReward, killer);
                 GetComponent<Codice.Presentation.ActorPresentation>()?.Die();
                 Died?.Invoke(this); gameObject.SetActive(false); Destroy(gameObject); return;
             }

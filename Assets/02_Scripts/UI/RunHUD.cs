@@ -161,7 +161,7 @@ namespace Codice.UI
             float charge=mechanics?mechanics.Charge:0;UltimateMeter.fillAmount=charge/100;
             UltimateMeter.color=charge>=100?Color.Lerp(ProceduralUISprites.Cyan,ProceduralUISprites.Gold,(Mathf.Sin(Time.unscaledTime*6)+1)/2):ProceduralUISprites.Cyan;
             ultimateText.text=mechanics&&mechanics.UltimateActive?"ACTIVO":$"{charge:0}%\n[Q]";
-            specialName.text=weapon==null?"":UIWidgets.Special(weapon.kind)+"\n[Q] / [Clic derecho]";
+            specialName.text=weapon==null?"":UIWidgets.Special(weapon.kind)+"\n[Q]";
             ammo.text=weapon!=null&&weapon.Capacity>0?$"MUNICIÓN   {weapon.ammunition} / {weapon.Capacity}"+(weapon.kind==WeaponKind.Musket?$"  •  Reserva {weapon.reserveAmmunition}  [R]":"  •  Regeneración "+(state.HasPassive(PassiveKind.Frenzy)?"1.125 s":"1.5 s")):"";
             var combat=Player.GetComponent<PlayerCombat>();
             if(combat&&combat.IsReloading)ammo.text+="  •  RECARGANDO";

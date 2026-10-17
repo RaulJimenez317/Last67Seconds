@@ -42,7 +42,7 @@ public static class EnemyPlayChecks
         }
         try
         {
-            float[] health = { 65, 55, 80, 220 }; int[] gold = { 10, 15, 20, 35 };
+            float[] health = { 65, 55, 80, 220 }; int[] gold = { 40, 50, 60, 80 };
             for (int i = 0; i < 4; i++)
             {
                 var enemy = Spawn((EnemyKind)i, new Vector3(i * 2 - 3, .1f, 0));
@@ -51,6 +51,7 @@ public static class EnemyPlayChecks
                 int before = player.State.Gold, deaths = 0; enemy.Died += _ => deaths++;
                 enemy.ReceiveDamage(new DamageInfo { amount = 10000, breaksGuard = true, source = playerObject });
                 enemy.ReceiveDamage(new DamageInfo { amount = 10000, source = playerObject });
+                Codice.Mechanics.GoldPickup.CollectRemaining(player);
                 Check(deaths == 1 && player.State.Gold == before + gold[i], "one death and reward " + i);
             }
             var heavy = Spawn(EnemyKind.Heavy, Vector3.zero);

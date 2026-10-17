@@ -69,6 +69,7 @@ namespace Codice.Mechanics
         void RoundCleared()
         {
             if (Phase != RunPhase.Combat || !Player || !Player.State.IsAlive) return;
+            GoldPickup.CollectRemaining(Player);
             if (RoundElapsed < 180) { Player.State.AddGold(100); Notice?.Invoke("¡Bono de Rapidez +100 Oro!"); Debug.Log("Bono de rapidez: +100 oro."); }
             SetPhase(RunPhase.Cleared);
             if (scene.IsArena || RoundRules.IsBoss(Level + 1))

@@ -88,7 +88,7 @@ namespace Codice.UI
                 else if(UnityEngine.EventSystems.EventSystem.current)UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
             }
             if(Paused)
-            {var s=Player.State;pauseClass.text=$"CLASE: {new[]{"Guerrero","Tanque","Arquero"}[(int)s.Class]}\nVida base {s.MaxHealth:0} • Velocidad actual {s.MoveSpeed:0.0}\n\nGuerrero 120 HP / 6.5 m/s\nTanque 180 HP / 4.8 m/s • Arquero 100 HP / 6.2 m/s";}
+            {var s=Player.State;pauseClass.text=$"CLASE: {new[]{"Caballero","Tanque","Arquero"}[(int)s.Class]}\nVida base {s.MaxHealth:0} • Velocidad actual {s.MoveSpeed:0.0}\n\nCaballero 120 HP / 6.5 m/s\nTanque 180 HP / 4.8 m/s • Arquero 100 HP / 8 m/s";}
             if(!shopping)return;
             shopGold.text=$"◆ {Player.State.Gold} ORO";
             for(int i=0;i<4;i++)

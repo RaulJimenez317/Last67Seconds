@@ -17,6 +17,9 @@ namespace Codice.Characters
         Vector3 restPosition;
         Transform displayed;
         public int Combo => combo;
+        public bool Blocking => player && player.State.Class == PlayerClass.Warrior && player.State.ActiveWeapon?.kind == WeaponKind.Sword &&
+            player.State.IsAlive && !player.ControlsBlocked && !player.IsStaggered && !Codice.UI.RunNavigation.Loading && Time.timeScale > 0 &&
+            !(Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) && Cursor.lockState == CursorLockMode.Locked && Mouse.current != null && Mouse.current.leftButton.isPressed;
         WeaponInstance reloading;
         float reloadElapsed;
         public const float ReloadSeconds = 2;
@@ -70,6 +73,8 @@ namespace Codice.Characters
             }
             if (weapon == null) return;
             UpdateWeapon(weapon);
+            if(weaponModels != null && weaponModels.Length > (int)WeaponKind.Shield && weaponModels[(int)WeaponKind.Shield])
+                weaponModels[(int)WeaponKind.Shield].SetActive(weapon.kind == WeaponKind.Shield || Blocking);
             if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) TryReload();
             if (displayed && !GetComponent<Codice.Presentation.ActorPresentation>())
             {
@@ -77,7 +82,7 @@ namespace Codice.Characters
                 displayed.localRotation = Quaternion.Euler(-30 * Mathf.Sin(phase * Mathf.PI), 0, -25 * Mathf.Sin(phase * Mathf.PI));
                 displayed.localPosition = restPosition + Vector3.forward * (.15f * Mathf.Sin(phase * Mathf.PI));
             }
-            if (Mouse.current != null && Mouse.current.leftButton.isPressed && Cursor.lockState == CursorLockMode.Locked && Time.timeScale > 0)
+            if (Mouse.current != null && (player.State.Class == PlayerClass.Warrior ? Mouse.current.rightButton.isPressed : Mouse.current.leftButton.isPressed) && Cursor.lockState == CursorLockMode.Locked && Time.timeScale > 0)
                 TryAttack();
         }
         void UpdateWeapon(WeaponInstance weapon)
@@ -99,7 +104,7 @@ namespace Codice.Characters
             if (Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) return false;
             var weapon = player.State.ActiveWeapon;
             if (!player.State.IsAlive || player.ControlsBlocked || player.IsStaggered || Time.timeScale == 0 || !player.view || weapon == null || Time.time < nextAttack) return false;
-            if (IsReloading) return false;
+            if (IsReloading || Blocking) return false;
             if (!player.State.ConsumeAmmo()) { TryReload(); return false; }
             if (Time.time - lastAttack > 1.2f) combo = 0;
             combo = combo % 3 + 1;

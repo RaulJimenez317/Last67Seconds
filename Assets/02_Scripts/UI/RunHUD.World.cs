@@ -13,6 +13,7 @@ namespace Codice.UI
         readonly List<Component> removed=new List<Component>();
         readonly List<FloatingNumber> numbers=new List<FloatingNumber>();
         WeaponPickup[] weapons=new WeaponPickup[0];LootPickup[] loot=new LootPickup[0];
+        TreasureChest[] chests=new TreasureChest[0];
         RectTransform tooltip;Text tooltipText, equippedComparison, groundComparison;
         readonly Text[] waypoints=new Text[3];
         float nextScan;
@@ -24,6 +25,8 @@ namespace Codice.UI
         }
         public string DescribePickup(Component item)
         {
+            if(item is Merchant shop)return shop.Available?"MERCADER ERRANTE\n[E] Abrir tienda • Comprar armas, pasivas y vida":"";
+            if(item is TreasureChest chest)return chest.Opened?"COFRE ABIERTO":$"COFRE DE ARMAS • {chest.price} ORO\n[E] Abrir y obtener un arma aleatoria\n"+(Player.State.Gold<chest.price?"Te faltan "+(chest.price-Player.State.Gold)+" monedas":"Saldo: "+Player.State.Gold+" oro");
             if(item is WeaponPickup pickup)
             {
                 var ground=pickup.weapon;var held=Player.State.ActiveWeapon;if(ground==null)return "";
@@ -47,6 +50,7 @@ namespace Codice.UI
             foreach(var pillar in FindObjectsByType<DestructiblePillar>(FindObjectsSortMode.None))if(!worldBars.ContainsKey(pillar))worldBars.Add(pillar,WorldHealthBar.Create(pillar));
             removed.Clear();foreach(var pair in worldBars)if(!pair.Key||!pair.Key.gameObject.activeInHierarchy){if(pair.Value)Destroy(pair.Value.gameObject);removed.Add(pair.Key);}foreach(var key in removed)worldBars.Remove(key);
             weapons=FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None);loot=FindObjectsByType<LootPickup>(FindObjectsSortMode.None);
+            chests=FindObjectsByType<TreasureChest>(FindObjectsSortMode.None);
         }
         void UpdateWorld()
         {
@@ -67,6 +71,8 @@ namespace Codice.UI
                 focus=candidate;distance=d;
             }
             foreach(var w in weapons)Consider(w);foreach(var p in loot)if(p&&p.Available)Consider(p);if(Context.portal&&Context.portal.Available)Consider(Context.portal);
+            foreach(var chest in chests)if(chest&&!chest.Opened)Consider(chest);
+            if(Context.dungeon&&Context.dungeon.merchant&&Context.dungeon.merchant.Available)Consider(Context.dungeon.merchant);
             tooltip.gameObject.SetActive(focus&&!overlay);
             if(focus&&!overlay){tooltipText.text=DescribePickup(focus);
                 bool compare=focus is WeaponPickup;equippedComparison.enabled=groundComparison.enabled=compare;

@@ -93,7 +93,7 @@ namespace Codice.Presentation
             if(player&&player.IsDashing)state="Dash";
             Play(state);
         }
-        string IdleState(){if(player){var k=player.State.ActiveWeapon?.kind;if(k==WeaponKind.Bow)return "BowIdle";if(k==WeaponKind.Musket)return "RifleIdle";if(k==WeaponKind.Shield)return "BlockIdle";return "Ready";}return enemy&&enemy.kind==EnemyKind.Crossbowman?"RifleIdle":enemy&&enemy.kind==EnemyKind.Heavy?"BlockIdle":"Idle";}
+        string IdleState(){if(player){if(player.GetComponent<Codice.Mechanics.PlayerMechanics>()?.ShieldActive==true)return "BlockIdle";var k=player.State.ActiveWeapon?.kind;if(k==WeaponKind.Bow)return "BowIdle";if(k==WeaponKind.Musket)return "RifleIdle";if(k==WeaponKind.Shield)return "BlockIdle";return "Ready";}return enemy&&enemy.kind==EnemyKind.Crossbowman?"RifleIdle":enemy&&enemy.kind==EnemyKind.Heavy?"BlockIdle":"Idle";}
         public void Play(string state,float duration=0,bool restart=false)
         {
             if(dead&&state!="Death")return;

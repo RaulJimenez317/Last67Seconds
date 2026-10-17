@@ -40,7 +40,7 @@ public static class MechanicsChecks
         state.ConsumeAmmo(); state.EquipPassive(PassiveKind.Frenzy); state.ActivatePassive(0); state.TickAmmunition(1.125f);
         Check(state.ActiveWeapon.ammunition == 8, "frenzy arrow regeneration");
         Near(state.AttackSpeedMultiplier, 1.25f, "frenzy attack speed");
-        state.EquipPassive(PassiveKind.MercuryBoots); state.ActivatePassive(1); Near(state.MoveSpeed, 7.44f, "mercury speed");
+        state.EquipPassive(PassiveKind.MercuryBoots); state.ActivatePassive(1); Near(state.MoveSpeed, 9.6f, "mercury speed");
         state.EquipPassive(PassiveKind.Overload); Check(!state.EquipPassive(PassiveKind.ThornArmor), "fourth passive needs replacement");
         Check(state.EquipPassive(PassiveKind.ThornArmor, 0) && !state.HasPassive(PassiveKind.Frenzy), "replace passive removes old effect");
         Check(!state.EquipPassive(PassiveKind.ThornArmor, 1), "reject duplicate");

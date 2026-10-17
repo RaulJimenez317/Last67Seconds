@@ -58,7 +58,7 @@ namespace Codice.Characters
         public event Action Died;
         public PlayerClass Class => playerClass;
         public float MaxHealth => playerClass == PlayerClass.Tank ? 180 : playerClass == PlayerClass.Archer ? 100 : 120;
-        public float MoveSpeed => (playerClass == PlayerClass.Tank ? 4.8f : playerClass == PlayerClass.Archer ? 6.2f : 6.5f) * (HasPassive(PassiveKind.MercuryBoots) ? 1.2f : 1);
+        public float MoveSpeed => (playerClass == PlayerClass.Tank ? 4.8f : playerClass == PlayerClass.Archer ? 8f : 6.5f) * (HasPassive(PassiveKind.MercuryBoots) ? 1.2f : 1);
         public float AttackSpeedMultiplier => HasPassive(PassiveKind.Frenzy) ? 1.25f : 1;
         public bool HasPassive(PassiveKind passive)
         { for (int i = 0; i < passiveCount; i++) if (passives[i] == passive && passiveRemaining[i] > 0) return true; return false; }
@@ -79,7 +79,7 @@ namespace Codice.Characters
             playerClass = selected; health = MaxHealth; gold = 0; activeSlot = 0; passiveCount = 0;
             passiveRemaining = new float[3]; passiveCooldown = new float[3];
             weapons = new WeaponInstance[2];
-            weapons[0] = new WeaponInstance(selected == PlayerClass.Tank ? WeaponKind.Axe : selected == PlayerClass.Archer ? WeaponKind.Bow : WeaponKind.Sword);
+            weapons[0] = new WeaponInstance(selected == PlayerClass.Tank ? WeaponKind.Hammer : selected == PlayerClass.Archer ? WeaponKind.Bow : WeaponKind.Sword);
             Changed?.Invoke();
         }
         public bool Damage(float amount)

@@ -21,6 +21,7 @@ namespace Codice.Mechanics
         System.Collections.IEnumerator Start()
         {
             yield return null;
+            TreasureChest.InstallInScene();
             if (!RunDirector.Instance) new GameObject("Run director").AddComponent<RunDirector>();
             Codice.UI.RunHUD.Install(this);
             RunDirector.Instance.Enter(this);

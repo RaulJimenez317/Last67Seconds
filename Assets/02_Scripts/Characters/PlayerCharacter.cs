@@ -36,6 +36,7 @@ namespace Codice.Characters
         void Awake()
         {
             controller = GetComponent<CharacterController>();
+            initialClass = Codice.UI.RunNavigation.SelectedClass;
             state.Initialize(initialClass); initialized = true;
             ApplyVisual(); state.Died += OnDeath;
             Codice.Presentation.ActorPresentation.Install(gameObject);
@@ -102,7 +103,7 @@ namespace Codice.Characters
             else if (keys.digit2Key.wasPressedThisFrame) state.SelectWeapon(1);
             else if (keys.tabKey.wasPressedThisFrame || mouse.scroll.ReadValue().y != 0) state.SelectWeapon(1 - state.ActiveSlot);
             if (keys.eKey.wasPressedThisFrame) TryInteract();
-            if (!ControlsBlocked && (keys.qKey.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame)) SpecialRequested?.Invoke();
+            if (!ControlsBlocked && keys.qKey.wasPressedThisFrame) SpecialRequested?.Invoke();
         }
         public bool TryDash(Vector3 direction)
         {

@@ -22,7 +22,7 @@ namespace Codice.Enemies
         public bool GuardBroken { get; private set; }
         public bool Paused { get; private set; }
         public event Action<BasicEnemy> Died;
-        public int GoldReward => new[] { 10, 15, 20, 35 }[(int)kind];
+        public int GoldReward => new[] { 40, 50, 60, 80 }[(int)kind];
         public float AttackDamage => new[] { 12f, 18f, 22f, 32f }[(int)kind];
         public float UltimateChargeReward => kind == EnemyKind.Heavy ? 12 : 6;
         NavMeshAgent agent;
@@ -178,7 +178,7 @@ namespace Codice.Enemies
             var killer = hit.source ? hit.source.GetComponentInParent<PlayerCharacter>() : null;
             if (killer && killer.State.IsAlive)
             {
-                killer.State.AddGold(GoldReward);
+                Codice.Mechanics.GoldPickup.Drop(transform.position, GoldReward, killer);
                 killer.GetComponent<Codice.Mechanics.PlayerMechanics>()?.EnemyKilled(UltimateChargeReward);
                 Codice.Mechanics.LootPickup.DropFromEnemy(killer, transform.position);
             }
