@@ -1,3 +1,4 @@
+using System.Linq;
 using Codice.Characters;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,6 +15,7 @@ namespace Codice.UI
         Merchant merchant;
         int replacement=-1;
         float previousTimeScale=1;
+        GameObject selectedModal;
         void BuildMenus()
         {
             modalShade=UIWidgets.Image(transform,"Modal shade",0,0,1920,1080,new Color(.025f,.025f,.045f,.82f)).rectTransform;Stretch(modalShade);modalShade.GetComponent<Image>().raycastTarget=true;
@@ -39,7 +41,7 @@ namespace Codice.UI
             UIWidgets.Label(pausePanel,"Controls",35,330,630,60,18).text="WASD mover • Clic atacar • 1/2/Tab armas\nEspacio/Shift dash • Q/Clic derecho especial • E recoger";
             UIWidgets.Button(pausePanel,"VOLVER A LA PARTIDA [Escape]",35,415,630,50,()=>SetPaused(false));
             defeatPanel=Panel("Defeat",-350,-190,700,380);Anchor(defeatPanel,.5f,.5f);
-            UIWidgets.Label(defeatPanel,"Heading",35,38,630,60,42,ProceduralUISprites.Crimson).text="LAS CENIZAS TE RECLAMAN";
+            UIWidgets.Label(defeatPanel,"Heading",35,38,630,60,32,ProceduralUISprites.Crimson).text="LAS CENIZAS TE RECLAMAN";
             UIWidgets.Label(defeatPanel,"Description",35,125,630,85,22).text="Tu viaje termina aquí.\nRepite el nivel o regresa al menú principal.";
             UIWidgets.Button(defeatPanel,"VOLVER A JUGAR",35,230,630,50,()=>{SetPaused(false);if(director)director.RestartLevel();});
             UIWidgets.Button(defeatPanel,"IR AL MENÚ PRINCIPAL",35,300,630,50,RunNavigation.MainMenu);
@@ -75,6 +77,12 @@ namespace Codice.UI
             if(merchant!=current){merchant=current;replacement=-1;}
             modalShade.gameObject.SetActive(Paused||dead||shopping||won);shopPanel.gameObject.SetActive(shopping&&!dead&&!Paused);pausePanel.gameObject.SetActive(Paused&&!dead);defeatPanel.gameObject.SetActive(dead);
             if(dead||won){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
+            var activeModal=dead?defeatPanel.gameObject:Paused?pausePanel.gameObject:won?victoryPanel.gameObject:shopping?shopPanel.gameObject:null;
+            if(activeModal!=selectedModal)
+            {
+                selectedModal=activeModal;
+                if(activeModal)activeModal.GetComponentsInChildren<Button>().FirstOrDefault(b=>b.interactable)?.Select();
+            }
             if(Paused)
             {var s=Player.State;pauseClass.text=$"CLASE: {new[]{"Guerrero","Tanque","Arquero"}[(int)s.Class]}\nVida base {s.MaxHealth:0} • Velocidad actual {s.MoveSpeed:0.0}\n\nGuerrero 120 HP / 6.5 m/s\nTanque 180 HP / 4.8 m/s • Arquero 100 HP / 6.2 m/s";}
             if(!shopping)return;

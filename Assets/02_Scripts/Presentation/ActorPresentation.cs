@@ -32,7 +32,7 @@ namespace Codice.Presentation
             else if(boss){Body=boss.visual.GetComponentInChildren<Animator>();if(!Body)Body=boss.visual.GetChild(0).gameObject.AddComponent<Animator>();Configure(Body,boss.kind==BossKind.GoblinKing?PresentationLibrary.Load().goblin:PresentationLibrary.Load().demon);oldHealth=boss.Health;AttachBossWeapons();}
         }
         static void Configure(Animator a,RuntimeAnimatorController controller){if(!a)return;a.runtimeAnimatorController=controller;a.applyRootMotion=false;a.cullingMode=AnimatorCullingMode.AlwaysAnimate;a.speed=1;a.SetFloat("ActionSpeed",1);}
-        static Transform Bone(Transform root,string name)=>root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t=>t.name==name);
+        static Transform Bone(Transform root,string name)=>root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t=>string.Equals(t.name,name,StringComparison.OrdinalIgnoreCase));
         void SetupPlayer()
         {
             if(player.classVisuals==null||player.classVisuals.Length<3||!player.view)return;
@@ -41,7 +41,8 @@ namespace Codice.Presentation
             var visual=player.classVisuals[index];if(!visual)return;
             Body=visual.GetComponentInChildren<Animator>(true);Configure(Body,PresentationLibrary.Load().medium);
             armsRoot=Instantiate(visual,player.view.transform);armsRoot.name="First person arms — "+player.State.Class;armsRoot.SetActive(true);
-            armsRoot.transform.localPosition=new Vector3(0,-.92f,.18f);armsRoot.transform.localRotation=Quaternion.identity;
+            armsRoot.transform.localPosition=new Vector3(0,-.65f,.55f);armsRoot.transform.localRotation=Quaternion.identity;
+            armsRoot.transform.localScale=Vector3.one*.55f;
             foreach(var renderer in armsRoot.GetComponentsInChildren<Renderer>(true)){
                 renderer.enabled=renderer.name.IndexOf("Arm",StringComparison.OrdinalIgnoreCase)>=0;
                 renderer.shadowCastingMode=ShadowCastingMode.Off;
@@ -109,7 +110,7 @@ namespace Codice.Presentation
             if(enemy&&enemy.kind==EnemyKind.Heavy)state="HeavyAttack";
             Play(state,Mathf.Max(.15f,duration),true);
         }
-        public void Hit(){if(Time.time>=lockedUntil)Play("Hit",.25f,true);}
+        public void Hit(){Play("Hit",.25f,true);}
         public void Die()
         {
             if(dead)return;dead=true;Play("Death",4,true);

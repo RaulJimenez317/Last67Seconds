@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0a79f4db45088548b192c17ff81c491, type: 3}
   m_Name: Library
   m_EditorClassIdentifier: Assembly-CSharp::Codice.Presentation.PresentationLibrary
-  medium: {fileID: 0}
-  goblin: {fileID: 0}
-  demon: {fileID: 0}
-  impact: {fileID: 0}
-  dust: {fileID: 0}
-  explosion: {fileID: 0}
-  muzzle: {fileID: 0}
+  medium: {fileID: 9100000, guid: 91096bad62893e540b2e5e4b18557ac5, type: 2}
+  goblin: {fileID: 9100000, guid: 78f32a99402b2f6439aeb8eb083c839b, type: 2}
+  demon: {fileID: 9100000, guid: 9ae56f0b1fac5df43be3392dafd73d13, type: 2}
+  impact: {fileID: 8701880418738843831, guid: 1420bb9885ed17d47925e6610e0c189a, type: 3}
+  dust: {fileID: 8229131354266074381, guid: 1b3bf8b6aaabe704aae9878b01a0b3c9, type: 3}
+  explosion: {fileID: 3483167809352569295, guid: f33d43daf2d54ac40bd4a7c1c1b41fc4, type: 3}
+  muzzle: {fileID: 3142319861781031627, guid: 5c677fd2f9e00f248ba585cfb75d336f, type: 3}

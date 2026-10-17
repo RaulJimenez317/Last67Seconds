@@ -11,7 +11,7 @@ public static class PresentationBridge
     static PresentationBridge(){EditorApplication.update+=Tick;}
     static void Tick(){if(EditorApplication.timeSinceStartup<next||EditorApplication.isCompiling)return;next=EditorApplication.timeSinceStartup+1;
         string file="MapReview/Presentation/request.txt";if(!File.Exists(file))return;string cmd=File.ReadAllText(file).Trim();File.Delete(file);
-        try{if(cmd=="audit")Audit();else EditorApplication.ExecuteMenuItem(cmd);File.WriteAllText("MapReview/Presentation/result.txt","OK "+cmd);}catch(Exception e){File.WriteAllText("MapReview/Presentation/result.txt",e.ToString());Debug.LogException(e);}}
+        try{if(cmd=="audit")Audit();else if(cmd=="Codice/Presentation/Install animations effects and menus")PresentationSetup.Install();else if(!EditorApplication.ExecuteMenuItem(cmd))throw new InvalidOperationException("Unknown menu: "+cmd);File.WriteAllText("MapReview/Presentation/result.txt","OK "+cmd);}catch(Exception e){File.WriteAllText("MapReview/Presentation/result.txt",e.ToString());Debug.LogException(e);}}
     static void Audit(){var s=new StringBuilder();
         foreach(string path in AssetDatabase.GetAllAssetPaths().Where(p=>p.StartsWith("Assets/")&&(p.EndsWith(".fbx",StringComparison.OrdinalIgnoreCase)||p.EndsWith(".glb")))){
             var clips=AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().Where(c=>!c.name.StartsWith("__preview__")).ToArray();

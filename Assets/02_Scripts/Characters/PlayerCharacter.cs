@@ -76,6 +76,7 @@ namespace Codice.Characters
                 return;
             }
             if (Codice.UI.RunHUD.HandlesEscapeThisFrame) return;
+            if (Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) return;
             if (keys.escapeKey.wasPressedThisFrame) { CaptureCursor(false); return; }
             if (Cursor.lockState != CursorLockMode.Locked)
             { if (mouse.leftButton.wasPressedThisFrame) CaptureCursor(true); return; }

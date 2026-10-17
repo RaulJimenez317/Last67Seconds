@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/00_Scenes/MainMenu.unity
+    guid: a45689e7f4cfb8e42b2476f7b2b21d5d
+  - enabled: 1
     path: Assets/00_Scenes/Maps/Calabozo.unity
     guid: 27ab147c96535614eb1315dd5b0a1828
   - enabled: 1

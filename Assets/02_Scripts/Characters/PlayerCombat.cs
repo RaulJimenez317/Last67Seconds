@@ -66,6 +66,7 @@ namespace Codice.Characters
         }
         public bool TryAttack()
         {
+            if (Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) return false;
             var weapon = player.State.ActiveWeapon;
             if (!player.State.IsAlive || player.ControlsBlocked || player.IsStaggered || Time.timeScale == 0 || !player.view || weapon == null || Time.time < nextAttack) return false;
             if (!player.State.ConsumeAmmo()) return false;
@@ -79,8 +80,19 @@ namespace Codice.Characters
             var forward = player.view.transform.forward;
             if (weapon.Ranged)
             {
-                Vector3 muzzle=displayed?displayed.position:origin+forward*.6f;
-                Codice.Presentation.PresentationVfx.Muzzle(muzzle,forward);
+                if (weapon.kind != WeaponKind.Bow)
+                {
+                    Vector3 muzzle=displayed?displayed.position:origin+forward*.6f;
+                    // Imported staff and musket meshes extend along their local Y axis.
+                    // Keep the flash on the animated weapon tip, rather than at the hand.
+                    var mesh=displayed?displayed.GetComponentInChildren<MeshFilter>():null;
+                    if(mesh&&mesh.sharedMesh)
+                    {
+                        var bounds=mesh.sharedMesh.bounds;
+                        muzzle=mesh.transform.TransformPoint(new Vector3(bounds.center.x,bounds.max.y,bounds.center.z));
+                    }
+                    Codice.Presentation.PresentationVfx.Muzzle(muzzle,forward);
+                }
                 if (weapon.kind == WeaponKind.Musket)
                 {
                     var hits = Physics.RaycastAll(origin, forward, 60, hitMask, QueryTriggerInteraction.Ignore);

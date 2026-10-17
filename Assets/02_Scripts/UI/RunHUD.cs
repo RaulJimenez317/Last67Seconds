@@ -23,6 +23,7 @@ namespace Codice.UI
         public Image UltimateMeter {get;private set;}
         public bool Paused {get;private set;}
         public bool ShopVisible => shopPanel && shopPanel.gameObject.activeSelf;
+        public bool ResultsVisible => (victoryPanel && victoryPanel.gameObject.activeSelf) || (defeatPanel && defeatPanel.gameObject.activeSelf);
         public bool TooltipVisible => tooltip && tooltip.gameObject.activeSelf;
         public int WorldBarCount => worldBars.Count;
         public Canvas Canvas {get;private set;}

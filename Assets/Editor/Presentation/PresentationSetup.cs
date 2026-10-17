@@ -50,8 +50,9 @@ public static class PresentationSetup
     {
         string path=Output+"/Animations/"+profile+".controller";
         var controller=AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
-        if(controller)return controller;
-        controller=AnimatorController.CreateAnimatorControllerAtPath(path);controller.AddParameter("Speed",AnimatorControllerParameterType.Float);controller.AddParameter("ActionSpeed",AnimatorControllerParameterType.Float);
+        if(!controller)controller=AnimatorController.CreateAnimatorControllerAtPath(path);
+        if(!controller.parameters.Any(p=>p.name=="Speed"))controller.AddParameter("Speed",AnimatorControllerParameterType.Float);
+        if(!controller.parameters.Any(p=>p.name=="ActionSpeed"))controller.AddParameter("ActionSpeed",AnimatorControllerParameterType.Float);
         var sm=controller.layers[0].stateMachine;
         foreach(var entry in states){
             string category=entry.Value[0],clipName=entry.Value[1],rig="Medium";
@@ -69,8 +70,13 @@ public static class PresentationSetup
             clip.name=entry.Key;AnimationUtility.SetAnimationEvents(clip,new AnimationEvent[0]);
             bool loop=new[]{"Idle","Ready","Movement","Patrol","Chase","BowIdle","RifleIdle","BlockIdle"}.Contains(entry.Key);
             var settings=AnimationUtility.GetAnimationClipSettings(clip);settings.loopTime=loop;settings.loopBlend=loop;AnimationUtility.SetAnimationClipSettings(clip,settings);
-            AssetDatabase.CreateAsset(clip,Output+"/Animations/"+profile+"_"+entry.Key+".anim");
-            var state=sm.AddState(entry.Key);state.motion=clip;if(!loop&&entry.Key!="Death"){state.speedParameter="ActionSpeed";state.speedParameterActive=true;}if(entry.Key=="Idle")sm.defaultState=state;
+            string clipPath=Output+"/Animations/"+profile+"_"+entry.Key+".anim";
+            var existing=AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
+            if(existing){EditorUtility.CopySerialized(clip,existing);Object.DestroyImmediate(clip);clip=existing;EditorUtility.SetDirty(clip);}
+            else AssetDatabase.CreateAsset(clip,clipPath);
+            var state=sm.states.Select(s=>s.state).FirstOrDefault(s=>s.name==entry.Key);
+            if(!state)state=sm.AddState(entry.Key);
+            state.motion=clip;state.speedParameterActive=!loop&&entry.Key!="Death";state.speedParameter="ActionSpeed";if(entry.Key=="Idle")sm.defaultState=state;
         }
         EditorUtility.SetDirty(controller);return controller;
     }
@@ -82,7 +88,7 @@ public static class PresentationSetup
             source.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);target.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
             string[] from={"hips","spine","chest","head","upperarm.l","lowerarm.l","hand.l","upperarm.r","lowerarm.r","hand.r","upperleg.l","lowerleg.l","foot.l","upperleg.r","lowerleg.r","foot.r"};
             string[] to={"pelvis","spine_01","spine_03","head","upperarm_l","lowerarm_l","hand_l","upperarm_r","lowerarm_r","hand_r","thigh_l","calf_l","foot_l","thigh_r","calf_r","foot_r"};
-            var a=from.Select(n=>source.GetComponentsInChildren<Transform>().First(t=>t.name==n)).ToArray();var b=to.Select(n=>target.GetComponentsInChildren<Transform>().First(t=>t.name==n)).ToArray();
+            var a=from.Select(n=>source.GetComponentsInChildren<Transform>().First(t=>string.Equals(t.name,n,StringComparison.OrdinalIgnoreCase))).ToArray();var b=to.Select(n=>target.GetComponentsInChildren<Transform>().First(t=>string.Equals(t.name,n,StringComparison.OrdinalIgnoreCase))).ToArray();
             var tpose=AssetDatabase.LoadAllAssetsAtPath(sourcePath).OfType<AnimationClip>().FirstOrDefault(c=>c.name=="T-Pose");if(tpose)tpose.SampleAnimation(source,0);
             var ar=a.Select(t=>t.rotation).ToArray();var br=b.Select(t=>t.rotation).ToArray();Vector3 hipA=a[0].position,hipB=b[0].position;float ratio=Mathf.Abs(hipB.y)/Mathf.Max(.01f,Mathf.Abs(hipA.y));
             var curves=new AnimationCurve[b.Length,4];for(int i=0;i<b.Length;i++)for(int j=0;j<4;j++)curves[i,j]=new AnimationCurve();var pos=new[]{new AnimationCurve(),new AnimationCurve(),new AnimationCurve()};
@@ -125,4 +131,3 @@ public static class PresentationSetup
         AssetDatabase.CreateAsset(result,path);return result;
     }
 }
-
