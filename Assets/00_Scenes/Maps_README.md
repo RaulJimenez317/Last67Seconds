@@ -4,7 +4,7 @@ Abrir `Assets/00_Scenes/Maps/Calabozo.unity` o `Coliseo.unity` en Unity 6000.5.6
 
 ## Calabozo
 
-Rotonda central con cuatro accesos, cuatro alas con criptas de botín, tramos de suelo de madera y balcones a 2 m accesibles por rampas. Suelo a Y=0, pasillos de 12 m y límites físicos de piedra. La cubierta queda abierta para facilitar la edición y la inspección del nivel. Los modelos y la textura proceden de `StructuresItemsInMap/KayKit_Dungeon_Pack_1.1_FREE`.
+Rotonda central con cuatro accesos, cuatro alas con criptas de botín, tramos de suelo de madera y balcones a 2 m accesibles por rampas. La ampliación ocupa 92 × 92 m: añade un circuito exterior de 12 m de ancho, conexiones laterales de 8 m y cuatro salas (Archivo, Almacén, Cripta Mayor y Galería), con accesos abiertos y elementos de orientación por color. Permite circular entre las alas sin cruzar la rotonda. Hay 445 módulos de suelo de 4 × 4 m. Suelo a Y=0 y límites físicos de piedra. La cubierta queda abierta para facilitar la edición y la inspección del nivel. Los modelos y la textura proceden de `StructuresItemsInMap/KayKit_Dungeon_Pack_1.1_FREE`.
 
 ## Coliseo
 
@@ -18,7 +18,7 @@ Cada escena incluye iluminación arquitectónica y cámara de inspección. Al in
 
 ## Regeneración y comprobación
 
-El menú `Codice > Maps > Rebuild both maps (overwrites map scenes)` regenera ambas escenas y comprueba materiales, apoyos y rutas de navegación. Sobrescribe las ediciones manuales de estas dos escenas; guardar esos cambios antes en control de versiones. La herramienta solo se compila en el editor.
+El menú `Codice > Maps > Rebuild both maps (overwrites map scenes)` regenera ambas escenas y comprueba materiales, apoyos y rutas de navegación. Sobrescribe las ediciones manuales de estas dos escenas; guardar esos cambios antes en control de versiones. Para regenerar únicamente el calabozo, usar `Codice > Maps > Rebuild dungeon only (overwrites Calabozo)` o `-executeMethod CodiceMapBuilder.BuildDungeon`. La herramienta solo se compila en el editor.
 
 Comando para regenerar y validar con el editor cerrado (adaptar la ruta del ejecutable):
 
@@ -28,4 +28,4 @@ Comando para regenerar y validar con el editor cerrado (adaptar la ruta del ejec
 
 Las capturas de revisión se generan en `MapReview/`, fuera de los recursos del juego. La validación de rutas crea una malla temporal y la retira: no introduce comportamiento ni datos de IA en las escenas.
 
-Validación realizada en Unity 6000.5.6f1: 10 recorridos completos en el calabozo y 2 en el coliseo para un agente de 1,80 m de altura y 0,80 m de ancho; 25 marcadores con superficie de apoyo. Vistas generales y de entrada revisadas. Esta prueba geométrica no sustituye las pruebas posteriores con el controlador definitivo del jugador.
+Validación realizada en Unity 6000.5.6f1: 26 recorridos completos en el calabozo ampliado y otros 20 con la rotonda temporalmente bloqueada durante la prueba (el bloqueo no se guarda). El coliseo conserva su validación anterior de 2 recorridos para un agente de 1,80 m de altura y 0,80 m de ancho; 31 marcadores con superficie de apoyo en el calabozo ampliado. Vistas generales y de entrada revisadas. Esta prueba geométrica no sustituye las pruebas posteriores con el controlador definitivo del jugador.

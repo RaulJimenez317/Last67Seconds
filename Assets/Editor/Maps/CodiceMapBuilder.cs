@@ -33,6 +33,17 @@ public static class CodiceMapBuilder
         Debug.Log("MAP_BUILD_OK: Calabozo and Coliseo saved and validated.");
     }
 
+    [MenuItem("Codice/Maps/Rebuild dungeon only (overwrites Calabozo)")]
+    public static void BuildDungeon()
+    {
+        if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        atlas = AssetDatabase.LoadAssetAtPath<Material>(Output + "/Materials/DungeonAtlas.mat");
+        stone = AssetDatabase.LoadAssetAtPath<Material>(Output + "/Materials/AshStone.mat");
+        if (!atlas || !stone) throw new InvalidOperationException("Map materials must exist before rebuilding the dungeon.");
+        Dungeon();
+        Debug.Log("DUNGEON_EXPANSION_OK");
+    }
+
     static Material Material(string name, Color color)
     {
         string path = Output + "/Materials/" + name + ".mat";
@@ -107,12 +118,19 @@ public static class CodiceMapBuilder
     {
         StartScene("Calabozo",true);
         var cells = new HashSet<Vector2Int>();
-        for (int x=-7;x<=7;x++) for(int z=-7;z<=7;z++)
+        Camera.main.transform.position = new Vector3(68,92,-80);
+        Camera.main.transform.LookAt(Vector3.zero);
+        for (int x=-11;x<=11;x++) for(int z=-11;z<=11;z++)
         {
             bool rotunda = x*x+z*z <= 10;
             bool passage = (Math.Abs(x)<=1 && Math.Abs(z)<=6) || (Math.Abs(z)<=1 && Math.Abs(x)<=6);
             bool crypt = (Math.Abs(x)>=5 && Math.Abs(x)<=7 && Math.Abs(z)<=2) || (Math.Abs(z)>=5 && Math.Abs(z)<=7 && Math.Abs(x)<=2);
-            if (rotunda || passage || crypt) cells.Add(new Vector2Int(x,z));
+            // Three-tile-wide outer circuit, four corner halls, and cross-links between wings.
+            int ax = Math.Abs(x), az = Math.Abs(z);
+            bool outerCircuit = Math.Max(ax,az) >= 9;
+            bool cornerHall = ax >= 7 && az >= 7;
+            bool crossLink = (ax >= 2 && az >= 5 && az <= 6) || (az >= 2 && ax >= 5 && ax <= 6);
+            if (rotunda || passage || crypt || outerCircuit || cornerHall || crossLink) cells.Add(new Vector2Int(x,z));
         }
         var directions = new [] {Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down};
         foreach(var c in cells.OrderBy(c=>c.x).ThenBy(c=>c.y))
@@ -155,6 +173,42 @@ public static class CodiceMapBuilder
             Marker("Ranged_Balcony_"+wing,Rotate(new Vector3(0,2.1f,27),a));
             Marker("Enemy_Entry_"+wing,Rotate(new Vector3(0,.1f,21),a));
         }
+        string[] hallNames = { "Archivo", "Almacen", "CriptaMayor", "Galeria" };
+        string[] banners = { "banner_blue", "banner_green", "banner_red", "banner_yellow" };
+        for (int quarter=0; quarter<4; quarter++)
+        {
+            float a=quarter*90;
+            string hall=hallNames[quarter];
+            // Partition each corner hall from the inner galleries, retaining two 4 m doorways.
+            foreach(float segment in new[]{30f,34f,42f})
+            {
+                Model("wall",Rotate(new Vector3(26,0,segment),a),new Vector3(4,5,.6f),a+90);
+                Model("wall",Rotate(new Vector3(segment,0,26),a),new Vector3(4,5,.6f),a);
+            }
+            Model("table_long",Rotate(new Vector3(36,0,31),a),new Vector3(4,1.1f,1.6f),a,true,props);
+            Model("barrel_small_stack",Rotate(new Vector3(31,0,30),a),new Vector3(1.8f,1.7f,1.8f),a,true,props);
+            Marker("Route_"+hall,Rotate(new Vector3(36,.1f,36),a));
+            Marker("Route_InnerJunction_"+quarter,Rotate(new Vector3(24,.1f,24),a));
+            Marker("Route_OuterJunction_"+quarter,Rotate(new Vector3(0,.1f,40),a));
+            Marker("Route_WingExit_"+quarter,Rotate(new Vector3(16,.1f,24),a));
+            foreach (float x in new[]{30f,42f})
+            {
+                Model("pillar_decorated",Rotate(new Vector3(x,0,42),a),new Vector3(1.4f,5,1.4f),a);
+                Torch(Rotate(new Vector3(x,2,43.5f),a));
+            }
+            Model(banners[quarter],Rotate(new Vector3(36,2,45.5f),a),new Vector3(2,2.5f,.2f),a,false,props);
+            Model(quarter==0 ? "shelf_large" : quarter==1 ? "barrel_large_decorated" : quarter==2 ? "chest_gold" : "sword_shield_gold",
+                Rotate(new Vector3(43,0,36),a),new Vector3(2,2,1.4f),a+90,true,props);
+            Model("shelf_small_candles",Rotate(new Vector3(36,0,44.5f),a),new Vector3(3,1.8f,1),a+180,true,props);
+            // Repeated architectural landmarks make both directions around the loop readable.
+            foreach(float along in new[]{-20f,0f,20f})
+            {
+                Torch(Rotate(new Vector3(along,2,44.8f),a));
+                Model("wall_pillar",Rotate(new Vector3(along,0,45.5f),a),new Vector3(.8f,5,.8f),a);
+            }
+            Torch(Rotate(new Vector3(16,2,25.5f),a));
+        }
+        Debug.Log("DUNGEON_LAYOUT: "+cells.Count+" floor tiles, "+(cells.Count*16)+" square metres, 92 x 92 m footprint");
         Save("Calabozo");
     }
 
@@ -204,32 +258,39 @@ public static class CodiceMapBuilder
         Save("Coliseo");
     }
 
-    static void ValidatePaths()
+    static void ValidatePaths(bool bypassCenter = false)
     {
         var sources = new List<UnityEngine.AI.NavMeshBuildSource>();
-        UnityEngine.AI.NavMeshBuilder.CollectSources(new Bounds(Vector3.zero, new Vector3(90,30,90)), ~0,
+        UnityEngine.AI.NavMeshBuilder.CollectSources(new Bounds(Vector3.zero, new Vector3(120,30,120)), ~0,
             UnityEngine.AI.NavMeshCollectGeometry.PhysicsColliders, 0, new List<UnityEngine.AI.NavMeshBuildMarkup>(), sources);
+        if (bypassCenter)
+            sources.Add(new UnityEngine.AI.NavMeshBuildSource {
+                shape = UnityEngine.AI.NavMeshBuildSourceShape.Box,
+                transform = Matrix4x4.TRS(new Vector3(0,2,0),Quaternion.identity,Vector3.one),
+                size = new Vector3(24,8,24), area = 1
+            });
         var settings = UnityEngine.AI.NavMesh.GetSettingsByID(0);
         settings.agentRadius = .4f; settings.agentHeight = 1.8f; settings.agentClimb = .35f; settings.agentSlope = 45;
-        var data = UnityEngine.AI.NavMeshBuilder.BuildNavMeshData(settings,sources,new Bounds(Vector3.zero,new Vector3(90,30,90)),Vector3.zero,Quaternion.identity);
+        var data = UnityEngine.AI.NavMeshBuilder.BuildNavMeshData(settings,sources,new Bounds(Vector3.zero,new Vector3(120,30,120)),Vector3.zero,Quaternion.identity);
         if(!data) throw new InvalidOperationException("Navigation validation could not build geometry");
         var instance = UnityEngine.AI.NavMesh.AddNavMeshData(data);
         try
         {
-            var entry = markers.Find("Player_Entry").position;
+            var entry = markers.Find(bypassCenter ? "Enemy_Entry_0" : "Player_Entry").position;
             if(!UnityEngine.AI.NavMesh.SamplePosition(entry,out var start,1,UnityEngine.AI.NavMesh.AllAreas))
                 throw new InvalidOperationException("Player entry is not walkable");
             int count=0;
             foreach(Transform marker in markers)
             {
-                if(!(marker.name.StartsWith("Enemy_") || marker.name.StartsWith("Ranged_") || marker.name.StartsWith("Merchant_") || marker.name.StartsWith("Portal_") || marker.name.StartsWith("Boss_"))) continue;
+                if(bypassCenter && !(marker.name.StartsWith("Enemy_") || marker.name.StartsWith("Route_"))) continue;
+                if(!(marker.name.StartsWith("Route_") || marker.name.StartsWith("Enemy_") || marker.name.StartsWith("Ranged_") || marker.name.StartsWith("Merchant_") || marker.name.StartsWith("Portal_") || marker.name.StartsWith("Boss_"))) continue;
                 var path = new UnityEngine.AI.NavMeshPath();
                 if(!UnityEngine.AI.NavMesh.SamplePosition(marker.position,out var target,1,UnityEngine.AI.NavMesh.AllAreas) ||
                     !UnityEngine.AI.NavMesh.CalculatePath(start.position,target.position,UnityEngine.AI.NavMesh.AllAreas,path) || path.status != UnityEngine.AI.NavMeshPathStatus.PathComplete)
                     throw new InvalidOperationException("Unreachable map location: "+marker.name+" target="+target.position+" start="+start.position+" path="+path.status);
                 count++;
             }
-            Debug.Log("MAP_ROUTES_OK: "+count+" paths for a 1.8 m tall, 0.8 m wide agent");
+            Debug.Log((bypassCenter ? "MAP_BYPASS_OK: " : "MAP_ROUTES_OK: ")+count+" paths for a 1.8 m tall, 0.8 m wide agent");
         }
         finally { instance.Remove(); UnityEngine.Object.DestroyImmediate(data); }
     }
@@ -244,6 +305,8 @@ public static class CodiceMapBuilder
         foreach(var renderer in UnityEngine.Object.FindObjectsByType<Renderer>())
             if(renderer.sharedMaterials.Any(m=>!m || !m.shader)) throw new InvalidOperationException("Missing material: "+renderer.name);
 
+        ValidatePaths();
+        if (name == "Calabozo") ValidatePaths(true);
         EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(),Output+"/"+name+".unity");
         // Review images are generated outside Assets and do not ship as game content.
         AssetDatabase.SaveAssets();
@@ -257,7 +320,6 @@ public static class CodiceMapBuilder
         cam.Render(); image.ReadPixels(new Rect(0,0,1400,1000),0,0); image.Apply(); File.WriteAllBytes("MapReview/"+name+"_Entry.png",image.EncodeToPNG());
         cam.transform.SetPositionAndRotation(originalPosition,originalRotation);
         cam.targetTexture=null; RenderTexture.active=null; UnityEngine.Object.DestroyImmediate(rt); UnityEngine.Object.DestroyImmediate(image);
-        ValidatePaths();
         Debug.Log("MAP_VALIDATED "+name+": "+architecture.childCount+" architectural objects, "+markers.childCount+" supported markers");
     }
 }
