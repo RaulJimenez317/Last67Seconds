@@ -27,6 +27,8 @@ namespace Codice.Enemies
                 if (hit.transform.IsChildOf(transform) || (owner && hit.transform.IsChildOf(owner.transform))) continue;
                 var player = hit.collider.GetComponentInParent<PlayerCharacter>();
                 if (player) player.ReceiveDamage(new DamageInfo { amount = damage, direction = velocity.normalized, source = owner ? owner.gameObject : gameObject });
+                var pillar = hit.collider.GetComponentInParent<Codice.Mechanics.DestructiblePillar>();
+                if (pillar) pillar.ReceiveDamage(new DamageInfo { amount = damage });
                 Destroy(gameObject); return;
             }
             transform.position += step;

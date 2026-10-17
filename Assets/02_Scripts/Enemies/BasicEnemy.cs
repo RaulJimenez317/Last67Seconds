@@ -51,6 +51,7 @@ namespace Codice.Enemies
         }
 
         bool IsRanged => kind == EnemyKind.Crossbowman || kind == EnemyKind.Mage;
+        public void ApplyStun(float seconds) { stagger = Mathf.Max(stagger, seconds); attacking = false; }
         void Start() { if (!target) target = FindFirstObjectByType<PlayerCharacter>(); }
 
         public void SetPaused(bool paused)
@@ -126,7 +127,7 @@ namespace Codice.Enemies
             if (!IsRanged)
             {
                 if (Vector3.Distance(transform.position, target.transform.position) <= 2.2f && CanSeeTarget())
-                    target.ReceiveDamage(new DamageInfo { amount = AttackDamage, source = gameObject, direction = transform.forward });
+                    target.ReceiveDamage(new DamageInfo { amount = AttackDamage, source = gameObject, direction = transform.forward, melee = true });
                 return;
             }
             if (!projectilePrefab) return;
@@ -148,7 +149,7 @@ namespace Codice.Enemies
             bool front = incoming.sqrMagnitude > .001f && Vector3.Dot(transform.forward, incoming.normalized) >= .5f;
             if (kind == EnemyKind.Heavy && hit.breaksGuard)
             { GuardBroken = true; if (shield) shield.SetActive(false); stagger = 1.2f; attacking = false; }
-            float damage = kind == EnemyKind.Heavy && !GuardBroken && front ? hit.amount * .2f : hit.amount;
+            float damage = kind == EnemyKind.Heavy && !GuardBroken && front && !hit.ignoreGuard ? hit.amount * .2f : hit.amount;
             Health = Mathf.Max(0, Health - damage);
             if (hit.knockback > 0)
             { impulse = Vector3.ProjectOnPlane(hit.direction, Vector3.up).normalized * Mathf.Min(hit.knockback, 12); stagger = Mathf.Max(stagger, .25f); attacking = false; }
@@ -157,7 +158,12 @@ namespace Codice.Enemies
             agent.enabled = false;
             foreach (var collider in GetComponentsInChildren<Collider>()) collider.enabled = false;
             var killer = hit.source ? hit.source.GetComponentInParent<PlayerCharacter>() : null;
-            if (killer && killer.State.IsAlive) killer.State.AddGold(GoldReward);
+            if (killer && killer.State.IsAlive)
+            {
+                killer.State.AddGold(GoldReward);
+                killer.GetComponent<Codice.Mechanics.PlayerMechanics>()?.EnemyKilled(UltimateChargeReward);
+                Codice.Mechanics.LootPickup.DropFromEnemy(killer, transform.position);
+            }
             Died?.Invoke(this);
             gameObject.SetActive(false);
             Destroy(gameObject);

@@ -14,12 +14,13 @@ namespace Codice.Characters
         [Range(1, 4)] public int tier = 1;
         public int ammunition;
         public float reloadProgress;
+        [Range(0, 100)] public float ultimateCharge;
         public float Damage => Mathf.Lerp(BaseDamage, MaxDamage, (tier - 1) / 3f);
         float BaseDamage => new[] { 18f, 55, 75, 12, 60, 35, 42, 25, 45, 95 }[(int)kind];
         float MaxDamage => new[] { 65f, 190, 250, 42, 195, 115, 135, 80, 145, 280 }[(int)kind];
-        public float AttacksPerSecond => new[] { 2.5f, .7f, .8f, 4, .65f, 1.3f, 1.1f, 1, 1.2f, .5f }[(int)kind];
+        public float AttacksPerSecond => Mathf.Lerp(new[] { 2.5f, .7f, .8f, 4, .65f, 1.3f, 1.1f, 1, 1.2f, .5f }[(int)kind], new[] { 3.4f, .85f, .95f, 4.5f, .85f, 1.6f, 1.4f, 1.2f, 1.5f, .5f }[(int)kind], (tier - 1) / 3f);
         public bool Ranged => kind == WeaponKind.Bow || kind == WeaponKind.Staff || kind == WeaponKind.Musket;
-        public int Capacity => kind == WeaponKind.Bow ? 8 : kind == WeaponKind.Musket ? 6 : 0;
+        public int Capacity => kind == WeaponKind.Bow ? Mathf.RoundToInt(Mathf.Lerp(8, 12, (tier - 1) / 3f)) : kind == WeaponKind.Musket ? 6 : 0;
         public WeaponInstance(WeaponKind kind, int tier = 1)
         { this.kind = kind; this.tier = Mathf.Clamp(tier, 1, 4); ammunition = Capacity; }
     }
@@ -39,7 +40,13 @@ namespace Codice.Characters
         public event Action Died;
         public PlayerClass Class => playerClass;
         public float MaxHealth => playerClass == PlayerClass.Tank ? 180 : playerClass == PlayerClass.Archer ? 100 : 120;
-        public float MoveSpeed => playerClass == PlayerClass.Tank ? 4.8f : playerClass == PlayerClass.Archer ? 6.2f : 6.5f;
+        public float MoveSpeed => (playerClass == PlayerClass.Tank ? 4.8f : playerClass == PlayerClass.Archer ? 6.2f : 6.5f) * (HasPassive(PassiveKind.MercuryBoots) ? 1.2f : 1);
+        public float AttackSpeedMultiplier => HasPassive(PassiveKind.Frenzy) ? 1.25f : 1;
+        public bool HasPassive(PassiveKind passive)
+        { for (int i = 0; i < passiveCount; i++) if (passives[i] == passive) return true; return false; }
+        public string Capture() => JsonUtility.ToJson(this);
+        public void Restore(string snapshot) { JsonUtility.FromJsonOverwrite(snapshot, this); Changed?.Invoke(); }
+        public void NotifyChanged() => Changed?.Invoke();
         public float Health => health;
         public int Gold => gold;
         public bool IsAlive => health > 0;
@@ -123,8 +130,9 @@ namespace Codice.Characters
                 if (weapon == null || weapon.kind != WeaponKind.Bow) continue;
                 if (weapon.ammunition >= weapon.Capacity) { weapon.reloadProgress = 0; continue; }
                 weapon.reloadProgress += deltaTime;
-                while (weapon.reloadProgress >= 1.5f && weapon.ammunition < weapon.Capacity)
-                { weapon.reloadProgress -= 1.5f; weapon.ammunition++; Changed?.Invoke(); }
+                float interval = HasPassive(PassiveKind.Frenzy) ? 1.125f : 1.5f;
+                while (weapon.reloadProgress >= interval && weapon.ammunition < weapon.Capacity)
+                { weapon.reloadProgress -= interval; weapon.ammunition++; Changed?.Invoke(); }
             }
         }
     }

@@ -20,6 +20,7 @@ namespace Codice.Characters
         public event Action SpecialRequested;
         CharacterController controller;
         float pitch, verticalSpeed, dashEnds, nextDash;
+        float secondDashReady;
         Vector3 dashDirection;
         Merchant merchant;
         bool initialized;
@@ -28,7 +29,7 @@ namespace Codice.Characters
         public bool IsStaggered => Time.time < staggerUntil;
         // Boss crowd control uses deadlines so destroyed puddles cannot leave permanent debuffs.
         public void ApplyBossSlow(float duration) { slowUntil = Time.time + duration; movementMultiplier = .65f; }
-        public void ApplyBossKnockdown() { if (!IsDashing) staggerUntil = Time.time + .6f; }
+        public void ApplyBossKnockdown() { if (!IsDashing && !(GetComponent<Codice.Mechanics.PlayerMechanics>()?.Invulnerable ?? false)) staggerUntil = Time.time + .6f; }
 
         void Awake()
         {
@@ -55,6 +56,7 @@ namespace Codice.Characters
         void Update()
         {
             if (!state.IsAlive || Time.timeScale == 0) return;
+            if (!ControlsBlocked) state.TickAmmunition(Time.deltaTime);
             var keys = Keyboard.current; var mouse = Mouse.current;
             if (keys == null || mouse == null || !view) return;
             if (merchant)
@@ -64,7 +66,8 @@ namespace Codice.Characters
                 else
                 {
                     int offer = keys.digit1Key.wasPressedThisFrame ? 0 : keys.digit2Key.wasPressedThisFrame ? 1 : keys.digit3Key.wasPressedThisFrame ? 2 : keys.digit4Key.wasPressedThisFrame ? 3 : -1;
-                    if (offer >= 0) Debug.Log(merchant.TryPurchase(this, offer) ? "Compra realizada." : "Compra rechazada: revisa oro, salud, stock o ranuras.", this);
+                    int replace = keys.leftShiftKey.isPressed ? 0 : keys.leftCtrlKey.isPressed ? 1 : keys.leftAltKey.isPressed ? 2 : -1;
+                    if (offer >= 0) Debug.Log(merchant.TryPurchase(this, offer, replace) ? "Compra realizada." : "Compra rechazada: revisa oro, salud, stock o ranuras.", this);
                 }
                 return;
             }
@@ -72,7 +75,6 @@ namespace Codice.Characters
             if (Cursor.lockState != CursorLockMode.Locked)
             { if (mouse.leftButton.wasPressedThisFrame) CaptureCursor(true); return; }
             if (ControlsBlocked) return;
-            state.TickAmmunition(Time.deltaTime);
             var delta = mouse.delta.ReadValue() * mouseSensitivity;
             transform.Rotate(0, delta.x, 0);
             pitch = Mathf.Clamp(pitch - delta.y, -85, 85);
@@ -82,7 +84,8 @@ namespace Codice.Characters
             if (keys.spaceKey.wasPressedThisFrame || keys.leftShiftKey.wasPressedThisFrame) TryDash(direction);
             if (controller.isGrounded && verticalSpeed < 0) verticalSpeed = -2;
             verticalSpeed += Physics.gravity.y * 2 * Time.deltaTime;
-            controller.Move(((IsDashing ? dashDirection * 18 : IsStaggered ? Vector3.zero : direction * state.MoveSpeed * MovementMultiplier) + Vector3.up * verticalSpeed) * Time.deltaTime);
+            float specialSpeed = GetComponent<Codice.Mechanics.PlayerMechanics>()?.ShadowStep == true ? 1.75f : 1;
+            controller.Move(((IsDashing ? dashDirection * 18 : IsStaggered ? Vector3.zero : direction * state.MoveSpeed * MovementMultiplier * specialSpeed) + Vector3.up * verticalSpeed) * Time.deltaTime);
             if (transform.position.y < -20) state.Damage(state.MaxHealth);
             if (keys.digit1Key.wasPressedThisFrame) state.SelectWeapon(0);
             else if (keys.digit2Key.wasPressedThisFrame) state.SelectWeapon(1);
@@ -92,11 +95,24 @@ namespace Codice.Characters
         }
         public bool TryDash(Vector3 direction)
         {
-            if (!state.IsAlive || ControlsBlocked || IsStaggered || Time.time < nextDash) return false;
+            if (!state.IsAlive || ControlsBlocked || IsStaggered || IsDashing) return false;
+            bool primaryReady = Time.time >= nextDash;
+            if (!primaryReady && (!state.HasPassive(PassiveKind.MercuryBoots) || Time.time < secondDashReady)) return false;
             direction.y = 0; dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : transform.forward;
-            dashEnds = Time.time + .3f; nextDash = Time.time + 1.5f; return true;
+            dashEnds = Time.time + .3f;
+            if (primaryReady) nextDash = Time.time + 1.5f; else secondDashReady = Time.time + 1.5f;
+            return true;
         }
-        public void ReceiveDamage(DamageInfo hit) { if (!IsDashing) state.Damage(hit.amount); }
+        public void ReceiveDamage(DamageInfo hit)
+        {
+            if (IsDashing || !state.IsAlive) return;
+            var mechanics = GetComponent<Codice.Mechanics.PlayerMechanics>();
+            if (mechanics && mechanics.Invulnerable) return;
+            if (mechanics) hit.amount = mechanics.ModifyIncoming(hit);
+            if (state.Damage(hit.amount) && mechanics) mechanics.AfterDamage(hit);
+        }
+        public void RestoreRunState(string snapshot)
+        { state.Restore(snapshot); initialClass = state.Class; ApplyVisual(); }
         public void TryInteract()
         {
             if (ControlsBlocked || !state.IsAlive) return;
@@ -116,7 +132,7 @@ namespace Codice.Characters
             transform.SetPositionAndRotation(position, rotation);
             controller.enabled = true;
             state.Initialize(initialClass);
-            verticalSpeed = pitch = dashEnds = nextDash = slowUntil = staggerUntil = 0;
+            verticalSpeed = pitch = dashEnds = nextDash = secondDashReady = slowUntil = staggerUntil = 0;
             movementMultiplier = 1; dashDirection = Vector3.zero; ControlsBlocked = false;
             if (view) view.transform.localRotation = Quaternion.identity;
             CaptureCursor(true);

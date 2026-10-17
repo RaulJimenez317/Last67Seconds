@@ -39,6 +39,8 @@ namespace Codice.Bosses
                         target.ReceiveDamage(new DamageInfo { amount = damage, source = owner.gameObject });
                 }
                 if (attack == BossAttack.Mud) BossMud.Create(owner, hit.point);
+                var pillar = hit.collider.GetComponentInParent<Codice.Mechanics.DestructiblePillar>();
+                if (pillar) pillar.ReceiveDamage(new DamageInfo { amount = damage, source = owner.gameObject });
                 Destroy(gameObject); return;
             }
             transform.position += step;

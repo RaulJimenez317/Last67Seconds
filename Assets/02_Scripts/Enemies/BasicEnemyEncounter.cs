@@ -5,7 +5,7 @@ using UnityEngine.AI;
 
 namespace Codice.Enemies
 {
-    // One encounter only. Round progression and boss portals belong to the next phase.
+    // Owns one configured wave. RunDirector decides when to start the next one.
     public sealed class BasicEnemyEncounter : MonoBehaviour
     {
         public BasicEnemy[] prefabs;
@@ -13,22 +13,33 @@ namespace Codice.Enemies
         public PlayerCharacter player;
         public Merchant merchant;
         [Min(1)] public int level = 1;
+        public bool startOnPlay = true;
+        [Min(1)] public int maxConcurrent = 8;
         public EnemyKind[] composition = { EnemyKind.Swordsman, EnemyKind.Crossbowman, EnemyKind.Swordsman, EnemyKind.Crossbowman, EnemyKind.Swordsman };
         public int Defeated { get; private set; }
         public int Total => composition.Length;
         public event Action Completed;
         BasicEnemy[] spawned;
         int next;
+        int spawnLimit;
+        bool running;
         void Start()
         {
-            spawned = new BasicEnemy[Total];
-            if (merchant) merchant.onRoundContinued.AddListener(Continue);
-            SpawnUntil(merchant ? (Total + 1) / 2 : Total);
+            if (startOnPlay) BeginEncounter(level, composition);
+        }
+        public bool BeginEncounter(int round, EnemyKind[] roster)
+        {
+            if (running || !player || !player.State.IsAlive || roster == null || roster.Length == 0 || spawnPoints.Length == 0 || prefabs.Length != 4) return false;
+            level = round; composition = (EnemyKind[])roster.Clone(); Defeated = next = 0;
+            spawned = new BasicEnemy[Total]; running = true;
+            if (merchant) { merchant.onRoundContinued.RemoveListener(Continue); merchant.onRoundContinued.AddListener(Continue); }
+            spawnLimit = merchant ? (Total + 1) / 2 : Total;
+            SpawnUntil(spawnLimit); return true;
         }
         void OnDestroy() { if (merchant) merchant.onRoundContinued.RemoveListener(Continue); }
         void SpawnUntil(int end)
         {
-            while (next < end)
+            while (next < end && next - Defeated < Mathf.Max(1, maxConcurrent))
             {
                 if (spawnPoints.Length == 0 || !player) { Debug.LogError("Enemy encounter needs player and spawn points.", this); return; }
                 var marker = spawnPoints[next % spawnPoints.Length];
@@ -45,11 +56,12 @@ namespace Codice.Enemies
             {
                 // Remove in-flight attacks before the safe shopping interval.
                 foreach (var shot in FindObjectsByType<EnemyProjectile>(FindObjectsSortMode.None))
-                    if (shot.gameObject.scene == gameObject.scene) Destroy(shot.gameObject);
+                    if (shot.gameObject.scene == gameObject.scene) { shot.gameObject.SetActive(false); Destroy(shot.gameObject); }
                 merchant.ReportRoundProgress(level, Defeated, Total);
             }
-            if (Defeated == Total) Completed?.Invoke();
+            else SpawnUntil(spawnLimit);
+            if (Defeated == Total) { running = false; Completed?.Invoke(); }
         }
-        void Continue() { SpawnUntil(Total); }
+        void Continue() { spawnLimit = Total; SpawnUntil(spawnLimit); }
     }
 }

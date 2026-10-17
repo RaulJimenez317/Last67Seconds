@@ -268,6 +268,7 @@ GameObject:
   - component: {fileID: 8634813480045586928}
   - component: {fileID: 544609190487826860}
   - component: {fileID: 239450384296877032}
+  - component: {fileID: 7033686773415549241}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -350,10 +351,12 @@ MonoBehaviour:
       tier: 0
       ammunition: 0
       reloadProgress: 0
+      ultimateCharge: 0
     - kind: 0
       tier: 0
       ammunition: 0
       reloadProgress: 0
+      ultimateCharge: 0
     activeSlot: 0
     passives: 000000000000000000000000
     passiveCount: 0
@@ -383,6 +386,18 @@ MonoBehaviour:
   - {fileID: 1551419091369809279}
   - {fileID: 2486228784208457554}
   - {fileID: 4723804833287582055}
+--- !u!114 &7033686773415549241
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5104137880159087658}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5097e13cf6b83374285738968cf93a02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Codice.Mechanics.PlayerMechanics
 --- !u!1 &5927505500030212873
 GameObject:
   m_ObjectHideFlags: 0

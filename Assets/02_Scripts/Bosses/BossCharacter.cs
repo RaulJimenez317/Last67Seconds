@@ -78,7 +78,7 @@ namespace Codice.Bosses
         }
         void Update()
         {
-            if (!IsAlive || Paused || !Target || !Target.State.IsAlive)
+            if (!IsAlive || Paused || Time.time < stunnedUntil || !Target || !Target.State.IsAlive)
             { if (agent.isOnNavMesh) agent.isStopped = true; return; }
             float dt = Time.deltaTime;
             summonTimer -= dt;
@@ -117,6 +117,8 @@ namespace Codice.Bosses
             if (!agent.isStopped && repath <= 0) { repath = .3f; agent.SetDestination(Target.transform.position); }
         }
         float retreatRemaining;
+        float stunnedUntil;
+        public void ApplyStun(float seconds) { stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds); CurrentAttack = BossAttack.None; }
         Vector3 retreatDirection;
         void LateUpdate()
         {
@@ -126,7 +128,7 @@ namespace Codice.Bosses
                 if (leftArm) leftArm.localRotation = leftRest * Quaternion.Euler(0, 0, -35 + lift);
                 if (rightArm) rightArm.localRotation = rightRest * Quaternion.Euler(0, 0, 35 - lift);
             }
-            if (retreatRemaining <= 0 || Paused || !IsAlive || !Target || !Target.State.IsAlive || !agent.isOnNavMesh) return;
+            if (retreatRemaining <= 0 || Paused || Time.time < stunnedUntil || !IsAlive || !Target || !Target.State.IsAlive || !agent.isOnNavMesh) return;
             retreatRemaining -= Time.deltaTime;
             agent.Move(retreatDirection * (7 * Time.deltaTime));
             if (visual) { var p = visual.localPosition; p.y = Mathf.Sin(Mathf.Clamp01(retreatRemaining / .45f) * Mathf.PI) * .8f; visual.localPosition = p; }
@@ -145,7 +147,7 @@ namespace Codice.Bosses
                 Vector3 delta = Target.transform.position - transform.position; delta.y = 0;
                 float dot = Vector3.Dot(facing, delta.normalized);
                 if (delta.magnitude <= 4.2f && dot >= (CurrentAttack == BossAttack.Slam ? .8f : 0) && HasLineOfSight(Target.transform.position + Vector3.up))
-                    Target.ReceiveDamage(new DamageInfo { amount = 45, source = gameObject, direction = facing });
+                    Target.ReceiveDamage(new DamageInfo { amount = 45, source = gameObject, direction = facing, melee = true });
                 if (Evolved) Fire(BossAttack.Slam, facing, 20, fireMaterial);
                 return;
             }
@@ -188,7 +190,11 @@ namespace Codice.Bosses
             if (!IsAlive || Paused || hit.amount <= 0 || float.IsNaN(hit.amount) || float.IsInfinity(hit.amount)) return;
             int previousPhase = Phase;
             Health = Mathf.Max(0, Health - hit.amount);
-            if (hit.source && hit.source.GetComponentInParent<PlayerCharacter>()) HitByPlayer?.Invoke(this);
+            if (hit.source && hit.source.GetComponentInParent<PlayerCharacter>())
+            {
+                HitByPlayer?.Invoke(this);
+                if (!hit.secondary) hit.source.GetComponentInParent<PlayerCharacter>().GetComponent<Codice.Mechanics.PlayerMechanics>()?.BossHit();
+            }
             Changed?.Invoke(this);
             if (!IsAlive)
             {

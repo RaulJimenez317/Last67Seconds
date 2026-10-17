@@ -14,6 +14,7 @@ namespace Codice.Bosses
         public Transform spawnPoint;
         [Min(5)] public int level = 5;
         public bool startOnPlay = true;
+        public bool managedByRun;
         public UnityEvent onCompleted = new UnityEvent();
         public event Action<BossCharacter> Spawned;
         public BossCharacter ActiveBoss { get; private set; }
@@ -30,10 +31,11 @@ namespace Codice.Bosses
         {
             if (!Defeated) return;
             if (ActiveBoss && !ActiveBoss.Paused) ActiveBoss.SetPaused(true);
-            if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) RestartEncounter();
+            if (!managedByRun && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) RestartEncounter();
         }
         public bool RestartEncounter()
         {
+            if (managedByRun) return Codice.Mechanics.RunDirector.Instance && Codice.Mechanics.RunDirector.Instance.RestartRun();
             if (!Defeated || Restarting) return false;
             Restarting = true;
             StartCoroutine(RestartAttempt());
@@ -63,9 +65,9 @@ namespace Codice.Bosses
             {
                 var panel = new Rect(Screen.width / 2f - 210, Screen.height / 2f - 90, 420, 180);
                 GUI.Box(panel, "Has sido derrotado");
-                GUI.Label(new Rect(panel.x + 25, panel.y + 40, 380, 45), "Tu vida llegó a cero.\nReintenta este nivel con tu equipo inicial.");
+                GUI.Label(new Rect(panel.x + 25, panel.y + 40, 380, 45), managedByRun ? "Tu vida llegó a cero.\nComienza una nueva partida desde el Calabozo." : "Tu vida llegó a cero.\nReintenta este nivel con tu equipo inicial.");
                 GUI.enabled = !Restarting;
-                if (GUI.Button(new Rect(panel.x + 60, panel.y + 105, 300, 45), "Reintentar combate (R)")) RestartEncounter();
+                if (GUI.Button(new Rect(panel.x + 60, panel.y + 105, 300, 45), managedByRun ? "Nueva partida (R)" : "Reintentar combate (R)")) RestartEncounter();
                 GUI.enabled = true;
             }
             else if (Cursor.lockState != CursorLockMode.Locked)

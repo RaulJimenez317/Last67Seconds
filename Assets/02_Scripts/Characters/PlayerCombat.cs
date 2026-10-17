@@ -66,25 +66,36 @@ namespace Codice.Characters
         public bool TryAttack()
         {
             var weapon = player.State.ActiveWeapon;
-            if (!player.State.IsAlive || player.ControlsBlocked || !player.view || weapon == null || Time.time < nextAttack) return false;
+            if (!player.State.IsAlive || player.ControlsBlocked || player.IsStaggered || Time.timeScale == 0 || !player.view || weapon == null || Time.time < nextAttack) return false;
             if (!player.State.ConsumeAmmo()) return false;
             if (Time.time - lastAttack > 1.2f) combo = 0;
             combo = combo % 3 + 1;
-            lastAttack = Time.time; nextAttack = Time.time + 1 / weapon.AttacksPerSecond;
+            lastAttack = Time.time; nextAttack = Time.time + 1 / (weapon.AttacksPerSecond * player.State.AttackSpeedMultiplier);
+            var mechanics = GetComponent<Codice.Mechanics.PlayerMechanics>();
+            if (weapon.kind == WeaponKind.Shield && mechanics) mechanics.RaiseShield();
             var origin = player.view.transform.position;
             var forward = player.view.transform.forward;
             if (weapon.Ranged)
             {
                 if (weapon.kind == WeaponKind.Musket)
                 {
-                    if (Physics.Raycast(origin, forward, out var hit, 60, hitMask, QueryTriggerInteraction.Ignore))
-                        Hit(hit.collider, weapon, forward);
+                    var hits = Physics.RaycastAll(origin, forward, 60, hitMask, QueryTriggerInteraction.Ignore);
+                    System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+                    var struck = new HashSet<IDamageReceiver>();
+                    foreach (var hit in hits)
+                    {
+                        if (hit.transform.IsChildOf(transform)) continue;
+                        var receiver = hit.collider.GetComponentInParent<IDamageReceiver>();
+                        if (receiver == null) break;
+                        if (struck.Add(receiver)) Hit(hit.collider, weapon, forward);
+                        if (!Codice.Mechanics.CombatTargets.IsEnemy(receiver as Component)) break;
+                    }
                 }
                 else
                 {
                     var shot = new GameObject("Player projectile").AddComponent<PlayerProjectile>();
                     shot.transform.position = origin;
-                    shot.Initialize(gameObject, forward, weapon.Damage, hitMask);
+                    shot.Initialize(gameObject, forward, mechanics ? mechanics.RollBasicDamage(weapon) : weapon.Damage, hitMask);
                 }
             }
             else
@@ -112,7 +123,7 @@ namespace Codice.Characters
             if (collider.transform.IsChildOf(transform)) return;
             collider.GetComponentInParent<IDamageReceiver>()?.ReceiveDamage(new DamageInfo
             {
-                amount = weapon.Damage, direction = direction, source = gameObject,
+                amount = GetComponent<Codice.Mechanics.PlayerMechanics>()?.RollBasicDamage(weapon) ?? weapon.Damage, direction = direction, source = gameObject, melee = !weapon.Ranged,
                 breaksGuard = weapon.kind == WeaponKind.Axe || weapon.kind == WeaponKind.Hammer,
                 knockback = weapon.kind == WeaponKind.Axe ? 5 : 0
             });
