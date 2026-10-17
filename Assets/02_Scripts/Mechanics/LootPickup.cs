@@ -16,6 +16,22 @@ namespace Codice.Mechanics
         public bool Available => Time.time >= readyAt;
         float readyAt;
         bool consumed;
+        Vector3 visualRest;
+        float visualPhase;
+        void Start()
+        {
+            var library = Codice.Presentation.PresentationLibrary.Load();
+            var prefab = library ? (kind == LootKind.Ammunition ? library.ammunitionModel :
+                library.passiveModels != null && (int)passive < library.passiveModels.Length ? library.passiveModels[(int)passive] : null) : null;
+            if (prefab)
+            {
+                if (visual) Destroy(visual);
+                visual = Instantiate(prefab, transform, false);
+                visual.name = kind == LootKind.Passive ? "Power-up • " + passive : "Munición";
+            }
+            if (visual) visualRest = visual.transform.localPosition;
+            visualPhase = Random.value * Mathf.PI * 2;
+        }
         void OnTriggerEnter(Collider other)
         {
             var player = other.GetComponentInParent<PlayerCharacter>();
@@ -23,6 +39,11 @@ namespace Codice.Mechanics
         }
         void Update()
         {
+            if (visual && !consumed)
+            {
+                visual.transform.localPosition = visualRest + Vector3.up * (.10f + Mathf.Sin(Time.time * 2 + visualPhase) * .08f);
+                visual.transform.Rotate(0, 35 * Time.deltaTime, 0, Space.Self);
+            }
             if (respawns && consumed && Available)
             { consumed = false; SetVisible(true); }
         }

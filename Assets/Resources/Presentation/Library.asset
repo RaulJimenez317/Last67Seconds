@@ -19,3 +19,10 @@ MonoBehaviour:
   dust: {fileID: 8229131354266074381, guid: 1b3bf8b6aaabe704aae9878b01a0b3c9, type: 3}
   explosion: {fileID: 3483167809352569295, guid: f33d43daf2d54ac40bd4a7c1c1b41fc4, type: 3}
   muzzle: {fileID: 3142319861781031627, guid: 5c677fd2f9e00f248ba585cfb75d336f, type: 3}
+  passiveModels:
+  - {fileID: 3418999981327539045, guid: 168e947ee38c3bc449d0fafb01339f4f, type: 3}
+  - {fileID: 982207809521724122, guid: 03539880a33f71d40b031bb0cff6071d, type: 3}
+  - {fileID: 8941326722538809949, guid: 0c3280e4492534548a7d77fc46230fcf, type: 3}
+  - {fileID: 3026656231520198353, guid: 78169dd8dc32ca040b5bf7e3b353d24d, type: 3}
+  - {fileID: 7435030219703656228, guid: dca18d39252df5c45b1992a52d5710f6, type: 3}
+  ammunitionModel: {fileID: 3219499559851740496, guid: 5453ae74762702544b14be935a3b8c5d, type: 3}
