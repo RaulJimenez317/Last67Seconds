@@ -1,0 +1,136 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b30b143ceb1d58f408d5bd72f5af4d65, type: 3}
+  m_Name: GameAudioLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::Codice.Presentation.GameAudioLibrary
+  menu: {fileID: 8300000, guid: 7fba12e194ff375478f3ee73b290f911, type: 3}
+  dungeon: {fileID: 8300000, guid: dcd9844ab8d49f44c865b50fffcdf5cb, type: 3}
+  arena: {fileID: 8300000, guid: 0d8c8d29f2bc1a545b42c4d72190076d, type: 3}
+  effects:
+  - cue: 0
+    clips:
+    - {fileID: 8300000, guid: 3a0b89de6c306f748b40e0a59e7af2bf, type: 3}
+    volume: 0.3
+    cooldown: 0.08
+  - cue: 1
+    clips:
+    - {fileID: 8300000, guid: 89bf4f76c3802954d8f895c3217c9603, type: 3}
+    volume: 0.5
+    cooldown: 0.07
+  - cue: 2
+    clips:
+    - {fileID: 8300000, guid: dac3eefbbaf77e443bc01ae8c235fe8d, type: 3}
+    volume: 0.55
+    cooldown: 0.08
+  - cue: 3
+    clips:
+    - {fileID: 8300000, guid: d43256ee25d71f34083c3a5ce5aa4d32, type: 3}
+    volume: 0.65
+    cooldown: 0.08
+  - cue: 4
+    clips:
+    - {fileID: 8300000, guid: 417b61c77229a2d4fa1e5d9c2e781351, type: 3}
+    volume: 0.35
+    cooldown: 0.1
+  - cue: 5
+    clips:
+    - {fileID: 8300000, guid: b377bbba706896643861a5b330eaf3ca, type: 3}
+    volume: 0.6
+    cooldown: 0.1
+  - cue: 6
+    clips:
+    - {fileID: 8300000, guid: 7d6cd4bbfd4693845b0b0bb9a4d68805, type: 3}
+    volume: 0.45
+    cooldown: 0.07
+  - cue: 7
+    clips:
+    - {fileID: 8300000, guid: 237006f3490dbe04d8f695609d10ed32, type: 3}
+    volume: 0.5
+    cooldown: 0.1
+  - cue: 8
+    clips:
+    - {fileID: 8300000, guid: c2ced6a716b184d48a1914b99236b077, type: 3}
+    volume: 0.4
+    cooldown: 0.3
+  - cue: 9
+    clips:
+    - {fileID: 8300000, guid: ac2c9b8f5bc145248968179e08d186e7, type: 3}
+    volume: 0.3
+    cooldown: 0.6
+  - cue: 10
+    clips:
+    - {fileID: 8300000, guid: 217f977d52087594bb5151fdfa46fc8c, type: 3}
+    - {fileID: 8300000, guid: f39bb2bcc49ed81429f39ae8ed49aace, type: 3}
+    - {fileID: 8300000, guid: 67be54963a6a2d7408f9930465323fba, type: 3}
+    - {fileID: 8300000, guid: 3b8f81728cf250d418862111315c93eb, type: 3}
+    volume: 0.2
+    cooldown: 0.09
+  - cue: 11
+    clips:
+    - {fileID: 8300000, guid: a04ef1063501c54428a7073c2bc10c3c, type: 3}
+    volume: 0.4
+    cooldown: 0.12
+  - cue: 12
+    clips:
+    - {fileID: 8300000, guid: 3a97252356fc62d40bf078721d9773f0, type: 3}
+    volume: 0.4
+    cooldown: 0.12
+  - cue: 13
+    clips:
+    - {fileID: 8300000, guid: 7cb7d565b70cc2548b96d827a6d08e51, type: 3}
+    volume: 0.5
+    cooldown: 0.2
+  - cue: 14
+    clips:
+    - {fileID: 8300000, guid: 6cf2bbbcf1c07494eab68e6fb2ed7403, type: 3}
+    volume: 0.45
+    cooldown: 0.12
+  - cue: 15
+    clips:
+    - {fileID: 8300000, guid: 2caec89426b4d074f885e73405ccc326, type: 3}
+    volume: 0.3
+    cooldown: 0.3
+  - cue: 16
+    clips:
+    - {fileID: 8300000, guid: 522a9595524757349b0e81b62d0b4f0f, type: 3}
+    volume: 0.45
+    cooldown: 0.2
+  - cue: 17
+    clips:
+    - {fileID: 8300000, guid: 8ea1f2678e7c9184d8e65cf8eda43eee, type: 3}
+    volume: 0.45
+    cooldown: 0.2
+  - cue: 18
+    clips:
+    - {fileID: 8300000, guid: 89bf4f76c3802954d8f895c3217c9603, type: 3}
+    volume: 0.3
+    cooldown: 0.15
+  - cue: 19
+    clips:
+    - {fileID: 8300000, guid: 35b3d2d84d9a70e4e8f0118ef0d95704, type: 3}
+    volume: 0.5
+    cooldown: 0.1
+  - cue: 20
+    clips:
+    - {fileID: 8300000, guid: 6cd9ac5f315ae5540957d8f773859816, type: 3}
+    volume: 0.55
+    cooldown: 1
+  - cue: 21
+    clips:
+    - {fileID: 8300000, guid: 67e387c19a0a0cc41958186cde9a2be5, type: 3}
+    volume: 0.5
+    cooldown: 1
+  - cue: 22
+    clips:
+    - {fileID: 8300000, guid: 88d1a0754e8ceae449febd5eea04512b, type: 3}
+    volume: 0.5
+    cooldown: 1.5

@@ -50,7 +50,7 @@ namespace Codice.Mechanics
         public bool Collect(PlayerCharacter player)
         {
             if(collected || !player || !player.State.IsAlive || Amount <= 0) return false;
-            collected = true; player.State.AddGold(Amount); gameObject.SetActive(false); Destroy(gameObject); return true;
+            collected = true; player.State.AddGold(Amount); Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Coin); gameObject.SetActive(false); Destroy(gameObject); return true;
         }
         void OnTriggerEnter(Collider other) { Collect(other.GetComponentInParent<PlayerCharacter>()); }
         void Update()

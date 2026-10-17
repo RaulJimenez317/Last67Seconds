@@ -86,6 +86,7 @@ namespace Codice.Characters
                     player.GetComponent<PlayerCombat>()?.CreatePickup(dropped, player.transform.position + player.transform.forward + Vector3.up * .25f);
                 }
             }
+            Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Purchase);
             StockChanged?.Invoke(); return true;
         }
         public void CloseShop()

@@ -116,6 +116,7 @@ namespace Codice.Characters
             if (!primaryReady && (!state.HasPassive(PassiveKind.MercuryBoots) || Time.time < secondDashReady)) return false;
             direction.y = 0; dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : transform.forward;
             dashEnds = Time.time + .3f;
+            Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Dash);
             if (primaryReady) nextDash = Time.time + 1.5f; else secondDashReady = Time.time + 1.5f;
             return true;
         }
@@ -131,14 +132,18 @@ namespace Codice.Characters
         {
             if (ControlsBlocked || IsStaggered || Time.timeScale == 0 ||
                 (Codice.UI.RunHUD.Instance && (Codice.UI.RunHUD.Instance.ResultsVisible || Codice.UI.RunHUD.Instance.Paused))) return false;
-            return state.ActivatePassive(slot);
+            bool activated=state.ActivatePassive(slot);
+            if(activated)Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Power);
+            return activated;
         }
         public void ReceiveDamage(DamageInfo hit)
         {
             if (IsDashing || !state.IsAlive) return;
             var mechanics = GetComponent<Codice.Mechanics.PlayerMechanics>();
             if (mechanics && mechanics.Invulnerable) return;
+            float originalDamage=hit.amount;
             if (mechanics) hit.amount = mechanics.ModifyIncoming(hit);
+            if(hit.amount>0)Codice.Presentation.GameAudio.Play(mechanics&&mechanics.ShieldActive&&hit.amount<originalDamage?Codice.Presentation.SoundCue.Block:Codice.Presentation.SoundCue.Hurt);
             if (state.Damage(hit.amount) && mechanics) mechanics.AfterDamage(hit);
         }
         public void RestoreRunState(string snapshot)

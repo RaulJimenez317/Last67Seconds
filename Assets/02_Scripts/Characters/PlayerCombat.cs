@@ -31,7 +31,7 @@ namespace Codice.Characters
             if (!player.State.IsAlive || player.ControlsBlocked || player.IsStaggered || Codice.UI.RunNavigation.Loading || Time.timeScale == 0 || IsReloading ||
                 (Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) ||
                 w == null || w.kind != WeaponKind.Musket || w.ammunition >= w.Capacity || w.reserveAmmunition <= 0) return false;
-            reloading = w; reloadElapsed = 0; return true;
+            reloading = w; reloadElapsed = 0; Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Reload); return true;
         }
         void OnDisable() { reloading = null; reloadElapsed = 0; }
         public WeaponPickup CreatePickup(WeaponInstance weapon, Vector3 position)

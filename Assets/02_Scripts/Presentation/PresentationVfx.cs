@@ -15,8 +15,8 @@ namespace Codice.Presentation
             Object.Destroy(go,lifetime);
         }
         public static void Impact(Vector3 point,Vector3 normal){var l=PresentationLibrary.Load();if(l)Spawn(l.impact,point,normal.sqrMagnitude>.001f?Quaternion.LookRotation(normal):Quaternion.identity,.3f,1.2f);}
-        public static void Footstep(Vector3 point){var l=PresentationLibrary.Load();if(l&&Physics.Raycast(point+Vector3.up*.2f,Vector3.down,out var hit,.6f,~0,QueryTriggerInteraction.Ignore))Spawn(l.dust,hit.point+hit.normal*.03f,Quaternion.identity,.045f,.65f);}
-        public static void Explosion(Vector3 point){var l=PresentationLibrary.Load();if(l)Spawn(l.explosion,point,Quaternion.identity,.65f,2.5f);}
+        public static void Footstep(Vector3 point){var l=PresentationLibrary.Load();if(Physics.Raycast(point+Vector3.up*.2f,Vector3.down,out var hit,.6f,~0,QueryTriggerInteraction.Ignore)){GameAudio.PlayAt(SoundCue.Footstep,point);if(l)Spawn(l.dust,hit.point+hit.normal*.03f,Quaternion.identity,.045f,.65f);}}
+        public static void Explosion(Vector3 point){GameAudio.PlayAt(SoundCue.Explosion,point);var l=PresentationLibrary.Load();if(l)Spawn(l.explosion,point,Quaternion.identity,.65f,2.5f);}
         public static void Muzzle(Vector3 point,Vector3 forward){var l=PresentationLibrary.Load();if(l)Spawn(l.muzzle,point,Quaternion.LookRotation(forward),.12f,.18f);}
     }
 }

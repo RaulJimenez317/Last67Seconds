@@ -17,9 +17,10 @@ namespace Codice.Mechanics
                 Vector3.Distance(player.transform.position,transform.position)>4) return false;
             var combat=player.GetComponent<PlayerCombat>();
             if(!combat)return false;
-            if(player.State.Gold<price){Message="Necesitas "+price+" monedas";return false;}
+            if(player.State.Gold<price){Message="Necesitas "+price+" monedas";Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Error);return false;}
             Opened=true;
             if(!player.State.SpendGold(price)){Opened=false;return false;}
+            Codice.Presentation.GameAudio.PlayAt(Codice.Presentation.SoundCue.Chest,transform.position);
             int level=RunDirector.Instance?RunDirector.Instance.Level:1;
             int tier=Mathf.Clamp(1+(level-1)/5+Random.Range(0,2),1,4);
             var weapon=new WeaponInstance((WeaponKind)Random.Range(0,10),tier);

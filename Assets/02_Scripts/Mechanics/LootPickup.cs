@@ -60,6 +60,7 @@ namespace Codice.Mechanics
             if (consumed || !Available || !player || !player.State.IsAlive || player.ControlsBlocked || Time.timeScale == 0 || Vector3.Distance(transform.position, player.transform.position) > 3.5f) return false;
             bool received = kind == LootKind.Ammunition ? player.State.AddAmmunition(amount) : player.State.EquipPassive(passive, replaceSlot);
             if (!received) return false;
+            Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Pickup);
             consumed = true; SetVisible(false);
             if (respawns) readyAt = Time.time + respawnSeconds; else Destroy(gameObject);
             return true;

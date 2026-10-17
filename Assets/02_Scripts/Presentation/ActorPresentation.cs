@@ -128,6 +128,9 @@ namespace Codice.Presentation
         static void SetActionSpeed(Animator a,string state,float duration){if(!a||!a.runtimeAnimatorController)return;var clip=a.runtimeAnimatorController.animationClips.FirstOrDefault(c=>c.name==state);a.SetFloat("ActionSpeed",clip?clip.length/Mathf.Max(.1f,duration):1);}
         public void Attack(bool ranged,float duration=.5f)
         {
+            var weapon=GetComponent<PlayerCharacter>()?.State.ActiveWeapon;
+            var cue=weapon!=null?(weapon.kind==WeaponKind.Bow?SoundCue.Bow:weapon.kind==WeaponKind.Musket?SoundCue.Gun:weapon.kind==WeaponKind.Staff?SoundCue.Magic:weapon.kind==WeaponKind.Hammer||weapon.kind==WeaponKind.Axe?SoundCue.Heavy:SoundCue.Swing):GetComponent<BossCharacter>()?SoundCue.Boss:ranged?SoundCue.Bow:SoundCue.Swing;
+            if(weapon!=null)GameAudio.Play(cue);else GameAudio.PlayAt(cue,transform.position);
             string state=ranged?"Shoot":"Melee";
             if(player){var k=player.State.ActiveWeapon?.kind;if(k==WeaponKind.Bow)state="ShootBow";else if(k==WeaponKind.Staff)state="ShootMagic";else if(k==WeaponKind.Hammer||k==WeaponKind.Axe||k==WeaponKind.Scythe)state="HeavyAttack";else if(k==WeaponKind.Polearm||k==WeaponKind.Dagger)state="Thrust";}
             if(enemy&&enemy.kind==EnemyKind.Mage)state="ShootMagic";
@@ -138,6 +141,7 @@ namespace Codice.Presentation
         public void Die()
         {
             if(dead)return;dead=true;Play("Death",4,true);
+            GameAudio.PlayAt(SoundCue.Death,transform.position);
             if(player){if(armsRoot)armsRoot.SetActive(false);return;}
             if(!Body)return;
             // Visual-only corpse lets the existing combat system remove the actor immediately.
