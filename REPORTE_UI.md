@@ -1,7 +1,7 @@
 # Entrega del punto 7: interfaz, HUD y menús
 
-Proyecto: **Last67Seconds / Códice de Ceniza**. Rama: **Hiber_Branches**. Base: `f83e0a6` (mecánicas).
-Unity **6000.5.6f1**, URP, uGUI y Input System existentes. Se trabajó en la misma carpeta y proyecto.
+Proyecto: **Last67Seconds / Códice de Ceniza**. Rama de entrega: **Leandro_Branches**. Base de esta finalización: `f1bfeed` (UI recibida desde Hiber_Branches; mecánicas en `f83e0a6`).
+Unity **6000.5.6f1**, URP, uGUI y Input System existentes. Proyecto de trabajo: `D:/67/Last67Seconds-Maps`.
 
 ## Probar la entrega
 
@@ -71,6 +71,12 @@ Cambios mínimos de soporte:
 
 **No se regeneraron ni guardaron cambios en Calabozo, Coliseo, NavMeshes o el prefab del jugador.** Los ajustes locales preexistentes de `ProjectSettings`, URP y `.vscode` no forman parte de esta entrega.
 
+## Cierre de la entrega — 17/10/2026
+
+La implementación recibida ya contenía el HUD, los menús y la integración. Se completó su validación y se corrigió el coordinador `UIRegressionChecks`: interpretaba `RUNNING` de `BossPlayChecks` como un fallo porque solo reconocía `Running`. Ahora compara los estados pendientes sin distinguir mayúsculas. Si una suite falla, sale de Play y vuelve a abrir la escena original, descartando únicamente los fixtures temporales sin guardarlos.
+
+La ejecución conjunta terminó con **`ALL_UI_REGRESSIONS_PASSED: 236 previous + 50 UI = 286`**. No se modificaron las reglas del juego ni las aserciones de las suites anteriores.
+
 ## Validación
 
 Menús disponibles:
@@ -93,4 +99,4 @@ Las pruebas de UI cubren sprites, inventario real, barras instantánea/retardada
 
 La primera ejecución agrupada con la vista Full HD encontró un fallo temporal en la comprobación existente del escudo (espera de reloj de 4,2 s frente a 4 s de simulación). No se cambió la habilidad ni se quitaron aserciones: el runner reduce temporalmente el viewport y solicita actualizaciones del editor para ejecutar las pruebas con menos carga.
 
-Validación visual: HUD, tienda, pausa, jefe y comparación de botín en Game View. No se generó ni probó un ejecutable independiente. Audio, música y efectos de mundo ajenos a la interfaz permanecen fuera de este punto.
+Validación visual en Game View a **1920×1080**: HUD, tienda, pausa, jefe y comparación de botín. La tarjeta muestra ambas columnas, sus estadísticas y el comando de recogida completos, sin superposición entre sus textos. No se generó ni probó un ejecutable independiente. Audio, música y efectos de mundo ajenos a la interfaz permanecen fuera de este punto.

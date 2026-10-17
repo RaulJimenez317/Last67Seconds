@@ -49,6 +49,7 @@ public static class UIRegressionChecks
     }
     static void Changed(PlayModeStateChange change)
     {
+        if(change==PlayModeStateChange.EnteredEditMode&&SessionState.GetBool(Key+"restore",false)){RestoreScene();return;}
         if(!SessionState.GetBool(Key+"active",false))return;
         if(change==PlayModeStateChange.EnteredPlayMode){deadline=EditorApplication.timeSinceStartup+120;launching=true;}
         if(change==PlayModeStateChange.EnteredEditMode)nextPrepare=EditorApplication.timeSinceStartup+.5;
@@ -83,7 +84,7 @@ public static class UIRegressionChecks
             if(EditorApplication.timeSinceStartup>deadline){Fail("Timed out waiting for stage "+stage);return;}
             if(!SessionState.GetBool(Key+"started",false))return;
             string result=stage==0?MechanicsChecks.Result:stage==1?EnemyPlayChecks.Result:stage==2?BossPlayChecks.Result:UIChecks.Result;
-            if(result=="Not run"||result=="Running")return;
+            if(string.Equals(result,"Not run",StringComparison.OrdinalIgnoreCase)||string.Equals(result,"Running",StringComparison.OrdinalIgnoreCase))return;
             if(!result.Contains("_PASSED:")){Fail(result);return;}
             if(stage==0)CharacterPlayChecks.Run();
             Debug.Log("UI regression stage "+stage+": "+result);
@@ -96,13 +97,21 @@ public static class UIRegressionChecks
         RestoreView();
         SessionState.SetString(Key+"result","FAILED: "+message);SessionState.SetBool(Key+"active",false);Debug.LogError(Result);
         if(RunHUD.Instance)RunHUD.Instance.SetPaused(false);
-        if(EditorApplication.isPlaying)EditorApplication.isPlaying=false;
+        SessionState.SetBool(Key+"restore",true);
+        if(EditorApplication.isPlayingOrWillChangePlaymode)EditorApplication.isPlaying=false;
+        else RestoreScene();
+    }
+    static void RestoreScene()
+    {
+        SessionState.SetBool(Key+"restore",false);
+        string original=SessionState.GetString(Key+"original","");
+        if(!string.IsNullOrEmpty(original))EditorSceneManager.OpenScene(original);
     }
     static void Finish(string result)
     {
         RestoreView();
         SessionState.SetBool(Key+"active",false);SessionState.SetString(Key+"result",result);
-        string original=SessionState.GetString(Key+"original","");if(!string.IsNullOrEmpty(original))EditorSceneManager.OpenScene(original);
+        RestoreScene();
         Debug.Log(result);
     }
 }
