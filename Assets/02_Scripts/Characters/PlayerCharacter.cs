@@ -23,6 +23,12 @@ namespace Codice.Characters
         Vector3 dashDirection;
         Merchant merchant;
         bool initialized;
+        float slowUntil, staggerUntil, movementMultiplier = 1;
+        public float MovementMultiplier => Time.time < slowUntil ? movementMultiplier : 1;
+        public bool IsStaggered => Time.time < staggerUntil;
+        // Boss crowd control uses deadlines so destroyed puddles cannot leave permanent debuffs.
+        public void ApplyBossSlow(float duration) { slowUntil = Time.time + duration; movementMultiplier = .65f; }
+        public void ApplyBossKnockdown() { if (!IsDashing) staggerUntil = Time.time + .6f; }
 
         void Awake()
         {
@@ -76,7 +82,7 @@ namespace Codice.Characters
             if (keys.spaceKey.wasPressedThisFrame || keys.leftShiftKey.wasPressedThisFrame) TryDash(direction);
             if (controller.isGrounded && verticalSpeed < 0) verticalSpeed = -2;
             verticalSpeed += Physics.gravity.y * 2 * Time.deltaTime;
-            controller.Move(((IsDashing ? dashDirection * 18 : direction * state.MoveSpeed) + Vector3.up * verticalSpeed) * Time.deltaTime);
+            controller.Move(((IsDashing ? dashDirection * 18 : IsStaggered ? Vector3.zero : direction * state.MoveSpeed * MovementMultiplier) + Vector3.up * verticalSpeed) * Time.deltaTime);
             if (transform.position.y < -20) state.Damage(state.MaxHealth);
             if (keys.digit1Key.wasPressedThisFrame) state.SelectWeapon(0);
             else if (keys.digit2Key.wasPressedThisFrame) state.SelectWeapon(1);
@@ -86,7 +92,7 @@ namespace Codice.Characters
         }
         public bool TryDash(Vector3 direction)
         {
-            if (!state.IsAlive || ControlsBlocked || Time.time < nextDash) return false;
+            if (!state.IsAlive || ControlsBlocked || IsStaggered || Time.time < nextDash) return false;
             direction.y = 0; dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : transform.forward;
             dashEnds = Time.time + .3f; nextDash = Time.time + 1.5f; return true;
         }

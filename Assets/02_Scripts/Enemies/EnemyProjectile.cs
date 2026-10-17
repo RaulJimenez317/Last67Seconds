@@ -6,6 +6,7 @@ namespace Codice.Enemies
     public sealed class EnemyProjectile : MonoBehaviour
     {
         BasicEnemy owner;
+        public BasicEnemy Owner => owner;
         PlayerCharacter target;
         Vector3 velocity;
         float damage, remaining = 5;

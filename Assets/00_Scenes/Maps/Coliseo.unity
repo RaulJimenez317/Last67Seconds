@@ -32907,6 +32907,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 5104137880159087658, guid: 3abee934954fda04b9755f9d00e7269d, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -32917,6 +32921,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1301196560133571490, guid: 3abee934954fda04b9755f9d00e7269d, type: 3}
   m_PrefabInstance: {fileID: 1764213494}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1764213496 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 544609190487826860, guid: 3abee934954fda04b9755f9d00e7269d, type: 3}
+  m_PrefabInstance: {fileID: 1764213494}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a8fa0ae6259fad489c3611f2757816c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Codice.Characters.PlayerCharacter
 --- !u!1001 &1765214329
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -34902,6 +34917,92 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.85, y: 2, z: 0.9}
   m_Center: {x: 0, y: 1, z: 0}
+--- !u!1 &1907027451
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1907027454}
+  - component: {fileID: 1907027453}
+  - component: {fileID: 1907027452}
+  m_Layer: 0
+  m_Name: Bosses (Phase 4)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1907027452
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1907027451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a5ac11cc976e418e8d13136b07e1f52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshSurface
+  m_SerializedVersion: 0
+  m_AgentTypeID: 0
+  m_CollectObjects: 1
+  m_Size: {x: 140, y: 30, z: 140}
+  m_Center: {x: 0, y: 2, z: 0}
+  m_LayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_UseGeometry: 1
+  m_DefaultArea: 0
+  m_GenerateLinks: 0
+  m_IgnoreNavMeshAgent: 1
+  m_IgnoreNavMeshObstacle: 1
+  m_OverrideTileSize: 0
+  m_TileSize: 256
+  m_OverrideVoxelSize: 0
+  m_VoxelSize: 0.16666667
+  m_MinRegionArea: 2
+  m_NavMeshData: {fileID: 23800000, guid: a97a976b0b45d044cac94da5497b86cf, type: 2}
+  m_BuildHeightMesh: 0
+--- !u!114 &1907027453
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1907027451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34e4abf631ee5d64ab92d16657c01e33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Codice.Bosses.BossEncounter
+  goblinPrefab: {fileID: 7520970785355047196, guid: fc439237f4b0bd644b9453ee671b4edf, type: 3}
+  demonPrefab: {fileID: 5736325401628743372, guid: 62fbce5a3837ab64289f97c3914c153d, type: 3}
+  player: {fileID: 1764213496}
+  spawnPoint: {fileID: 1895094495}
+  level: 5
+  startOnPlay: 1
+  onCompleted:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!4 &1907027454
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1907027451}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1910186599
 GameObject:
   m_ObjectHideFlags: 0
@@ -39779,3 +39880,4 @@ SceneRoots:
   - {fileID: 2059327819}
   - {fileID: 1396394485}
   - {fileID: 826574566}
+  - {fileID: 1907027454}
