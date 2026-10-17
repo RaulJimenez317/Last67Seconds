@@ -107,6 +107,21 @@ namespace Codice.Characters
         { merchant = shop; ControlsBlocked = true; CaptureCursor(false); ShopOpened?.Invoke(shop); }
         public void EndShop()
         { merchant = null; ControlsBlocked = false; CaptureCursor(state.IsAlive); }
+        // A new boss attempt resets the run state and all temporary movement effects.
+        public bool RestartAfterDefeat(Vector3 position, Quaternion rotation)
+        {
+            if (state.IsAlive) return false;
+            if (merchant) merchant.CloseShop();
+            controller.enabled = false;
+            transform.SetPositionAndRotation(position, rotation);
+            controller.enabled = true;
+            state.Initialize(initialClass);
+            verticalSpeed = pitch = dashEnds = nextDash = slowUntil = staggerUntil = 0;
+            movementMultiplier = 1; dashDirection = Vector3.zero; ControlsBlocked = false;
+            if (view) view.transform.localRotation = Quaternion.identity;
+            CaptureCursor(true);
+            return true;
+        }
         void OnDeath() { if (merchant) merchant.CloseShop(); ControlsBlocked = true; CaptureCursor(false); }
         static void CaptureCursor(bool capture)
         { Cursor.lockState = capture ? CursorLockMode.Locked : CursorLockMode.None; Cursor.visible = !capture; }

@@ -45,13 +45,17 @@ El GDD no especifica vida, oro, daño tóxico, radio explosivo ni límite de inv
 
 ## Alcance
 
-Esta entrega cubre bosses. No añade progresión automática de rondas, portales entre mapas, HUD, música, efectos finales, ultimates ni pasivas. El botín se representa mediante oro directo; no se crea un sistema de botín físico. El cambio mínimo al jugador añade ralentización temporal y derribo para estos ataques. `EnemyProjectile.Owner` permite limpiar únicamente los disparos de invocados del boss.
+Esta entrega cubre bosses. No añade progresión automática de rondas, portales entre mapas, HUD completo, música, efectos finales, ultimates ni pasivas. El botín se representa mediante oro directo; no se crea un sistema de botín físico. El cambio mínimo al jugador añade ralentización temporal y derribo para estos ataques. `EnemyProjectile.Owner` permite limpiar únicamente los disparos de invocados del boss.
+
+### Corrección de derrota sin aviso
+
+Al morir, el jugador liberaba el cursor y bloqueaba controles sin aviso ni forma de continuar. Se reprodujo con HP=0, `ControlsBlocked=true`, `timeScale=1` y editor sin pausa. Coliseo muestra ahora la vida, el estado del boss y un panel de derrota con botón **Reintentar combate (R)**. El reintento conserva el nivel configurado, vuelve al punto de entrada y restablece vida, equipo inicial, oro, munición y controles; limpia ralentización, derribo, invocados y ataques del intento anterior. Se rechazan reintentos duplicados o con el jugador vivo. Al liberar el cursor con Escape se indica cómo recuperarlo.
 
 El cambio local previo en `Assets/00_Scenes/Game.unity` se conserva fuera del commit.
 
 ## Validación reproducible
 
-Resultado obtenido en Unity 6000.5.6f1: **BOSS_CHECKS_PASSED: 35**, compilación sin errores y **CHARACTER_PLAY_TESTS_OK: 19 assertions** de `CharacterPlayChecks.Run()`. El reporte anterior mencionaba 26; la utilidad presente en esta rama ejecuta 19. Se inspeccionaron capturas en Play de Goblin base y Demonio evolucionado dentro del Coliseo.
+Resultado obtenido en Unity 6000.5.6f1 tras corregir el flujo de derrota: **BOSS_CHECKS_PASSED: 46**, compilación sin errores y **CHARACTER_PLAY_TESTS_OK: 19 assertions** de `CharacterPlayChecks.Run()`. El reporte anterior mencionaba 26; la utilidad presente en esta rama ejecuta 19. Las once comprobaciones adicionales cubren derrota, pausa, reintento, limpieza, restauración y conservación del nivel. Se inspeccionaron capturas en Play de Goblin base y Demonio evolucionado dentro del Coliseo.
 
 En una sesión nueva de Play en Coliseo, esperar a que aparezca el Goblin y ejecutar:
 

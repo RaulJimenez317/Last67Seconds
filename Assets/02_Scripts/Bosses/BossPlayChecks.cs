@@ -88,6 +88,26 @@ public sealed class BossPlayChecks : MonoBehaviour
         Check(FindObjectsByType<BossMud>(FindObjectsSortMode.None).Length == 0, "puddle cleanup");
         yield return new WaitForSeconds(.2f);
         Check(player.MovementMultiplier == 1, "cleanup releases slow");
+        Check(encounter.BeginEncounter(20), "retry test encounter");
+        var previousBoss = encounter.ActiveBoss;
+        previousBoss.enabled = false;
+        previousBoss.Summon();
+        BossMud.Create(previousBoss, player.transform.position);
+        player.ApplyBossSlow(8); player.ApplyBossKnockdown();
+        player.State.Damage(player.State.MaxHealth);
+        yield return null;
+        Check(encounter.Defeated && player.ControlsBlocked && Cursor.lockState == CursorLockMode.None, "defeat is explicit");
+        Check(previousBoss.Paused, "defeat pauses boss");
+        Check(encounter.RestartEncounter(), "retry accepted");
+        Check(!encounter.RestartEncounter(), "duplicate retry rejected");
+        yield return null; yield return null;
+        Check(player.State.IsAlive && player.State.Health == player.State.MaxHealth && !player.ControlsBlocked, "retry restores player");
+        Check(player.MovementMultiplier == 1 && !player.IsStaggered, "retry clears debuffs");
+        Check(!encounter.Defeated && !encounter.Restarting && encounter.ActiveBoss && encounter.ActiveBoss != previousBoss, "retry creates new boss");
+        Check(encounter.level == 20 && encounter.ActiveBoss.Evolved && encounter.ActiveBoss.kind == BossKind.DemonLord, "retry preserves selected level");
+        Check(FindObjectsByType<BossMud>(FindObjectsSortMode.None).Length == 0 && encounter.ActiveBoss.LivingSummons == 0, "retry cleans hazards and summons");
+        Check(!encounter.RestartEncounter(), "living player cannot retry");
+        encounter.ActiveBoss.SetPaused(true);
         Result = "BOSS_CHECKS_PASSED: " + checks; Debug.Log(Result); Destroy(gameObject);
     }
 }
