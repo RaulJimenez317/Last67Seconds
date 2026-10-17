@@ -168,7 +168,7 @@ namespace Codice.UI
             reload.fillAmount=combat&&combat.IsReloading?combat.ReloadFraction:weapon!=null&&weapon.kind==WeaponKind.Bow&&weapon.ammunition<weapon.Capacity?Mathf.Clamp01(weapon.reloadProgress/(state.HasPassive(PassiveKind.Frenzy)?1.125f:1.5f)):0;
             ammoReload.fillAmount=reload.fillAmount;
             crosshair.text=weapon==null?"·":weapon.kind==WeaponKind.Bow?"◇":weapon.kind==WeaponKind.Musket?"┼":weapon.Ranged?"○":"·";
-            dash.text="DASH [Espacio / Shift]\n"+(Player.DashCooldown<=0?"◆ LISTO":$"◇ {Player.DashCooldown:0.0}s")+(state.HasPassive(PassiveKind.MercuryBoots)?(Player.SecondDashCooldown<=0?"   ◆ LISTO":$"   ◇ {Player.SecondDashCooldown:0.0}s"):"");
+            dash.text="SALTO [Espacio] • DASH [Shift]\n"+(Player.DashCooldown<=0?"◆ LISTO":$"◇ {Player.DashCooldown:0.0}s")+(state.HasPassive(PassiveKind.MercuryBoots)?(Player.SecondDashCooldown<=0?"   ◆ LISTO":$"   ◇ {Player.SecondDashCooldown:0.0}s"):"");
             if(director)
             {
                 timers.text=$"PARTIDA   {UIWidgets.Clock(director.Elapsed)}\nRONDA     {UIWidgets.Clock(director.RoundElapsed)}\n<size=16><color={(director.RoundElapsed<180?"#F5D76E":"#777C91")}>◆ RAPIDEZ +100 • MENOS DE 03:00</color></size>";

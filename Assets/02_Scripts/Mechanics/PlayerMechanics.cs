@@ -36,7 +36,7 @@ namespace Codice.Mechanics
             if (weapon == null || !player.State.IsAlive || UltimateActive || amount <= 0 || float.IsNaN(amount) || float.IsInfinity(amount)) return;
             bool ready = weapon.ultimateCharge >= 100;
             weapon.ultimateCharge = Mathf.Clamp(weapon.ultimateCharge + amount * (player.State.HasPassive(PassiveKind.Overload) ? 1.5f : 1), 0, 100);
-            if (!ready && weapon.ultimateCharge >= 100) Debug.Log("Especial listo: Q o clic derecho (" + weapon.kind + ").", this);
+            if (!ready && weapon.ultimateCharge >= 100) Debug.Log("Especial listo: Q (" + weapon.kind + ").", this);
             Changed?.Invoke();
         }
         public void EnemyKilled(float charge)

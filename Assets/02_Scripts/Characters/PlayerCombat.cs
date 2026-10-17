@@ -17,9 +17,9 @@ namespace Codice.Characters
         Vector3 restPosition;
         Transform displayed;
         public int Combo => combo;
-        public bool Blocking => player && player.State.Class == PlayerClass.Warrior && player.State.ActiveWeapon?.kind == WeaponKind.Sword &&
+        public bool Blocking => player && (player.State.Class == PlayerClass.Warrior || player.State.ActiveWeapon?.kind == WeaponKind.Shield) &&
             player.State.IsAlive && !player.ControlsBlocked && !player.IsStaggered && !Codice.UI.RunNavigation.Loading && Time.timeScale > 0 &&
-            !(Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) && Cursor.lockState == CursorLockMode.Locked && Mouse.current != null && Mouse.current.leftButton.isPressed;
+            !(Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) && Cursor.lockState == CursorLockMode.Locked && Mouse.current != null && Mouse.current.rightButton.isPressed;
         WeaponInstance reloading;
         float reloadElapsed;
         public const float ReloadSeconds = 2;
@@ -82,7 +82,7 @@ namespace Codice.Characters
                 displayed.localRotation = Quaternion.Euler(-30 * Mathf.Sin(phase * Mathf.PI), 0, -25 * Mathf.Sin(phase * Mathf.PI));
                 displayed.localPosition = restPosition + Vector3.forward * (.15f * Mathf.Sin(phase * Mathf.PI));
             }
-            if (Mouse.current != null && (player.State.Class == PlayerClass.Warrior ? Mouse.current.rightButton.isPressed : Mouse.current.leftButton.isPressed) && Cursor.lockState == CursorLockMode.Locked && Time.timeScale > 0)
+            if (Mouse.current != null && Mouse.current.leftButton.isPressed && Cursor.lockState == CursorLockMode.Locked && Time.timeScale > 0)
                 TryAttack();
         }
         void UpdateWeapon(WeaponInstance weapon)
@@ -110,7 +110,6 @@ namespace Codice.Characters
             combo = combo % 3 + 1;
             lastAttack = Time.time; nextAttack = Time.time + 1 / (weapon.AttacksPerSecond * player.State.AttackSpeedMultiplier);
             var mechanics = GetComponent<Codice.Mechanics.PlayerMechanics>();
-            if (weapon.kind == WeaponKind.Shield && mechanics) mechanics.RaiseShield();
             GetComponent<Codice.Presentation.ActorPresentation>()?.Attack(weapon.Ranged, 1 / (weapon.AttacksPerSecond * player.State.AttackSpeedMultiplier));
             var origin = player.view.transform.position;
             var forward = player.view.transform.forward;
@@ -150,6 +149,7 @@ namespace Codice.Characters
                     shot.transform.position = origin;
                     float damage = mechanics ? mechanics.RollBasicDamage(weapon) : weapon.Damage;
                     shot.Initialize(gameObject, forward, damage, hitMask, damage > weapon.Damage * 1.5f);
+                    if (weapon.kind == WeaponKind.Bow) shot.AddArrowVisual();
                 }
             }
             else
@@ -157,16 +157,30 @@ namespace Codice.Characters
                 float range = weapon.kind == WeaponKind.Polearm ? 3.5f : weapon.kind == WeaponKind.Sword && combo == 3 ? 2.8f : 2.2f;
                 bool wide = weapon.kind == WeaponKind.Axe || weapon.kind == WeaponKind.Hammer || weapon.kind == WeaponKind.Scythe;
                 var receivers = new HashSet<IDamageReceiver>();
-                foreach (var collider in Physics.OverlapSphere(transform.position + Vector3.up, range, hitMask, QueryTriggerInteraction.Ignore))
+                foreach (var collider in Physics.OverlapSphere(origin, range, hitMask, QueryTriggerInteraction.Ignore))
                 {
                     if (collider.transform.IsChildOf(transform)) continue;
+                    var receiver = collider.GetComponentInParent<IDamageReceiver>();
+                    if (receiver == null || receivers.Contains(receiver)) continue;
                     Vector3 point = collider.ClosestPoint(origin);
                     Vector3 offset = point - origin;
-                    if (Vector3.Angle(forward, offset) > (wide ? 90 : 40)) continue;
+                    // Aim at the volume's centre for the cone test. ClosestPoint can be
+                    // directly below the camera when an enemy is touching the player.
+                    Vector3 aim = collider.bounds.center - origin;
+                    Vector3 planarAim = Vector3.ProjectOnPlane(aim, Vector3.up);
+                    Vector3 planarForward = Vector3.ProjectOnPlane(forward, Vector3.up);
+                    if (Vector3.Angle(planarForward, planarAim) > (wide ? 90 : 40)) continue;
+                    if (Mathf.Abs(aim.y) > range) continue;
                     // Cover blocks melee damage too. A multi-collider receiver is hit only once.
-                    if (Physics.Raycast(origin, offset.normalized, out var obstruction, offset.magnitude, hitMask, QueryTriggerInteraction.Ignore) &&
-                        obstruction.collider.GetComponentInParent<IDamageReceiver>() != collider.GetComponentInParent<IDamageReceiver>()) continue;
-                    var receiver = collider.GetComponentInParent<IDamageReceiver>();
+                    bool blocked = false;
+                    foreach (var obstruction in Physics.RaycastAll(origin, offset.normalized, offset.magnitude, hitMask, QueryTriggerInteraction.Ignore))
+                    {
+                        if (obstruction.transform.IsChildOf(transform) || obstruction.collider.GetComponentInParent<IDamageReceiver>() == receiver) continue;
+                        // Other actors do not absorb a wide swing; solid scenery does.
+                        if (Codice.Mechanics.CombatTargets.IsEnemy(obstruction.collider.GetComponentInParent<IDamageReceiver>() as Component)) continue;
+                        blocked = true; break;
+                    }
+                    if (blocked) continue;
                     if (receiver != null && receivers.Add(receiver)) Hit(collider, weapon, offset.normalized);
                 }
             }

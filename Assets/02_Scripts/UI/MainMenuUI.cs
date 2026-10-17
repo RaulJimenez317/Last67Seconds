@@ -54,7 +54,7 @@ namespace Codice.UI
             Label(classes,"Title",75,115,1520,90,60,Cream,"Elige quién desafía las cenizas.");
             Label(classes,"Hint",80,220,1520,55,24,Muted,"Cada clase empieza con su propia arma. Podrás encontrar y comprar otras durante la partida.");
             string[] names={"CABALLERO","ARQUERO","TANQUE"};
-            string[] stats={"120 VIDA   /   VELOCIDAD 6.5\n\nEspada • Daño equilibrado\nClic derecho: atacar\nMantén clic izquierdo: escudo\nBloquea el 50% del daño frontal.","100 VIDA   /   VELOCIDAD 8\n\nArco • Alto daño por flecha\nClic izquierdo: disparar\nCada disparo consume munición.\nLas flechas se regeneran." ,"180 VIDA   /   VELOCIDAD 4.8\n\nMazo • Golpe en área frontal\nClic izquierdo: atacar\nGolpea a varios enemigos cercanos.\nMás resistencia, menos movilidad."};
+            string[] stats={"120 VIDA   /   VELOCIDAD 6.5\n\nEspada • Daño equilibrado\nClic izquierdo: atacar\nMantén clic derecho: escudo\nBloquea el 50% del daño frontal.","100 VIDA   /   VELOCIDAD 8\n\nArco • Alto daño por flecha\nClic izquierdo: disparar\nCada disparo consume munición.\nLas flechas se regeneran." ,"180 VIDA   /   VELOCIDAD 4.8\n\nMazo • Golpe en área frontal\nClic izquierdo: atacar\nGolpea a varios enemigos cercanos.\nMás resistencia, menos movilidad."};
             var kinds=new[]{Codice.Characters.PlayerClass.Warrior,Codice.Characters.PlayerClass.Archer,Codice.Characters.PlayerClass.Tank};
             for(int i=0;i<3;i++)
             {

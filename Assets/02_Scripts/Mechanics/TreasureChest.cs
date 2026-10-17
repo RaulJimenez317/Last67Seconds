@@ -41,8 +41,11 @@ namespace Codice.Mechanics
         {
             foreach(var candidate in FindObjectsByType<Transform>(FindObjectsSortMode.None))
             {
-                if(!candidate.name.Equals("chest_gold",System.StringComparison.OrdinalIgnoreCase) ||
-                    (candidate.parent && candidate.parent.name.Equals("chest_gold",System.StringComparison.OrdinalIgnoreCase)) || candidate.GetComponentInParent<TreasureChest>())continue;
+                // Character rigs also contain a bone named "chest"; it is not loot.
+                if (candidate.GetComponentInParent<PlayerCharacter>() || candidate.GetComponentInParent<Codice.Enemies.BasicEnemy>() ||
+                    candidate.GetComponentInParent<Codice.Bosses.BossCharacter>() || candidate.GetComponentInParent<Animator>()) continue;
+                if(!(candidate.name.Equals("chest_gold",System.StringComparison.OrdinalIgnoreCase) || candidate.name.Equals("chest",System.StringComparison.OrdinalIgnoreCase)) ||
+                    (candidate.parent && (candidate.parent.name.Equals("chest_gold",System.StringComparison.OrdinalIgnoreCase) || candidate.parent.name.Equals("chest",System.StringComparison.OrdinalIgnoreCase))) || candidate.GetComponentInParent<TreasureChest>())continue;
                 var renderers=candidate.GetComponentsInChildren<Renderer>();if(renderers.Length==0)continue;
                 var bounds=renderers[0].bounds;foreach(var renderer in renderers)bounds.Encapsulate(renderer.bounds);
                 candidate.gameObject.AddComponent<TreasureChest>();

@@ -10,6 +10,14 @@ namespace Codice.Characters
         float damage, expires;
         LayerMask mask;
         bool critical;
+        public void AddArrowVisual()
+        {
+            var prefab = Resources.Load<GameObject>("PlayerArrow");
+            if (!prefab) return;
+            var model = Instantiate(prefab, transform, false);
+            model.transform.localPosition = Vector3.zero;
+            transform.rotation = Quaternion.LookRotation(direction);
+        }
         public void Initialize(GameObject owner, Vector3 direction, float damage, LayerMask mask, bool critical = false)
         { this.critical = critical; this.owner = owner; this.direction = direction.normalized; this.damage = damage; this.mask = mask; expires = Time.time + 3; }
         void Update()

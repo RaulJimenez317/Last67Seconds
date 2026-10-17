@@ -12,6 +12,8 @@ namespace Codice.Characters
         public GameObject[] classVisuals;
         [Min(.01f)] public float mouseSensitivity = .09f;
         public LayerMask interactionMask = ~0;
+        [Min(.1f)] public float jumpHeight = 1.25f;
+        public bool Grounded => controller && controller.isGrounded;
         [SerializeField] CharacterState state = new CharacterState();
         public CharacterState State => state;
         public float DashCooldown => Mathf.Max(0, nextDash - Time.time);
@@ -93,11 +95,13 @@ namespace Codice.Characters
             view.transform.localRotation = Quaternion.Euler(pitch, 0, 0);
             Vector2 input = new Vector2((keys.dKey.isPressed ? 1 : 0) - (keys.aKey.isPressed ? 1 : 0), (keys.wKey.isPressed ? 1 : 0) - (keys.sKey.isPressed ? 1 : 0));
             Vector3 direction = transform.TransformDirection(new Vector3(input.x, 0, input.y).normalized);
-            if (keys.spaceKey.wasPressedThisFrame || keys.leftShiftKey.wasPressedThisFrame) TryDash(direction);
+            if (keys.leftShiftKey.wasPressedThisFrame) TryDash(direction);
             if (controller.isGrounded && verticalSpeed < 0) verticalSpeed = -2;
+            if (keys.spaceKey.wasPressedThisFrame) TryJump();
             verticalSpeed += Physics.gravity.y * 2 * Time.deltaTime;
             float specialSpeed = GetComponent<Codice.Mechanics.PlayerMechanics>()?.ShadowStep == true ? 1.75f : 1;
-            controller.Move(((IsDashing ? dashDirection * 18 : IsStaggered ? Vector3.zero : direction * state.MoveSpeed * MovementMultiplier * specialSpeed) + Vector3.up * verticalSpeed) * Time.deltaTime);
+            var collision = controller.Move(((IsDashing ? dashDirection * 18 : IsStaggered ? Vector3.zero : direction * state.MoveSpeed * MovementMultiplier * specialSpeed) + Vector3.up * verticalSpeed) * Time.deltaTime);
+            if ((collision & CollisionFlags.Above) != 0 && verticalSpeed > 0) verticalSpeed = 0;
             if (transform.position.y < -20) state.Damage(state.MaxHealth);
             if (keys.digit1Key.wasPressedThisFrame) state.SelectWeapon(0);
             else if (keys.digit2Key.wasPressedThisFrame) state.SelectWeapon(1);
@@ -113,6 +117,14 @@ namespace Codice.Characters
             direction.y = 0; dashDirection = direction.sqrMagnitude > .01f ? direction.normalized : transform.forward;
             dashEnds = Time.time + .3f;
             if (primaryReady) nextDash = Time.time + 1.5f; else secondDashReady = Time.time + 1.5f;
+            return true;
+        }
+        public bool TryJump()
+        {
+            if (!state.IsAlive || ControlsBlocked || IsStaggered || IsDashing || !Grounded || verticalSpeed > 0 ||
+                Time.timeScale == 0 || Codice.UI.RunNavigation.Loading ||
+                (Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible)) return false;
+            verticalSpeed = Mathf.Sqrt(2 * Mathf.Abs(Physics.gravity.y * 2) * jumpHeight);
             return true;
         }
         public bool TryActivatePassive(int slot)
@@ -134,8 +146,7 @@ namespace Codice.Characters
         public void TryInteract()
         {
             if (ControlsBlocked || !state.IsAlive) return;
-            if (Physics.Raycast(view.ViewportPointToRay(new Vector3(.5f, .5f)), out var hit, 3f, interactionMask, QueryTriggerInteraction.Collide))
-                hit.collider.GetComponentInParent<IPlayerInteractable>()?.Interact(this);
+            (InteractionTarget.Find(this) as IPlayerInteractable)?.Interact(this);
         }
         public void BeginShop(Merchant shop)
         { merchant = shop; ControlsBlocked = true; CaptureCursor(false); ShopOpened?.Invoke(shop); }

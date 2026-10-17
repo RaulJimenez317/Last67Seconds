@@ -19,6 +19,7 @@ namespace Codice.Presentation
         PlayerCharacter player;BasicEnemy enemy;BossCharacter boss;NavMeshAgent agent;
         GameObject armsRoot;int selectedClass=-1;float lockedUntil,oldHealth,stepDistance;Vector3 previous;
         bool dead,weaponsCalibrated;WeaponKind previousWeapon=(WeaponKind)(-1);
+        GameObject nockedArrow;
         public static ActorPresentation Install(GameObject actor)
         {
             if(!PresentationLibrary.Load())return null;
@@ -59,11 +60,34 @@ namespace Codice.Presentation
                 var hand=i==(int)WeaponKind.Bow||i==(int)WeaponKind.Shield?Bone(armsRoot.transform,"handslot.l"):WeaponSocket;
                 model.transform.SetParent(hand,false);model.transform.localPosition=Vector3.zero;model.transform.localRotation=Quaternion.identity;
                 // Prefab wrappers were centred for a floating camera prop. Restore the model's grip origin.
-                if(!weaponsCalibrated&&model.transform.childCount>0){var mesh=model.transform.GetChild(0);mesh.localPosition=i==(int)WeaponKind.Bow||i==(int)WeaponKind.Shield?Vector3.zero:mesh.localPosition-Vector3.up*.1f;}
+                if(!weaponsCalibrated&&i!=(int)WeaponKind.Bow&&model.transform.childCount>0){var mesh=model.transform.GetChild(0);mesh.localPosition=i==(int)WeaponKind.Shield?Vector3.zero:mesh.localPosition-Vector3.up*.1f;}
                 model.transform.localScale=Vector3.one/Mathf.Max(.01f,hand.lossyScale.x);
                 if(i==(int)WeaponKind.Musket)model.transform.localRotation=Quaternion.Euler(90,0,0);
+                // Blink blades face local X, while the grip animation expects local Z.
+                if(i==(int)WeaponKind.Axe||i==(int)WeaponKind.Scythe)model.transform.localRotation=Quaternion.Euler(0,-90,0);
             }
             weaponsCalibrated=true;
+        }
+        void LateUpdate()
+        {
+            if(!player||!player.view)return;
+            var combat=player.GetComponent<PlayerCombat>();
+            if(!combat||combat.weaponModels==null||combat.weaponModels.Length<3)return;
+            var bow=combat.weaponModels[(int)WeaponKind.Bow];
+            bool drawing=player.State.IsAlive&&player.State.ActiveWeapon?.kind==WeaponKind.Bow;
+            // Keep the bow inside the first-person frustum; full-body aim clips put
+            // the left-hand prop outside the camera and use a different grip axis.
+            if(bow&&drawing)
+            {
+                bow.transform.position=player.view.transform.TransformPoint(new Vector3(-.28f,-.22f,.7f));
+                bow.transform.rotation=player.view.transform.rotation;
+            }
+            if(!nockedArrow)
+            {
+                var prefab=Resources.Load<GameObject>("PlayerArrow");
+                if(prefab){nockedArrow=Instantiate(prefab,player.view.transform);nockedArrow.name="Nocked arrow";nockedArrow.transform.localPosition=new Vector3(-.22f,-.18f,.85f);nockedArrow.transform.localRotation=Quaternion.identity;}
+            }
+            if(nockedArrow)nockedArrow.SetActive(drawing&&player.State.ActiveWeapon.ammunition>0);
         }
         void AttachBossWeapons()
         {

@@ -58,21 +58,7 @@ namespace Codice.UI
             if(Time.unscaledTime>=nextScan){nextScan=Time.unscaledTime+.25f;ScanWorld();}
             foreach(var bar in worldBars.Values)if(bar)bar.Refresh(camera);
             bool overlay=Paused||ShopVisible||!Player.State.IsAlive||(victoryPanel&&victoryPanel.gameObject.activeSelf);
-            Component focus=null;float distance=3.5f;
-            void Consider(Component candidate)
-            {
-                if(!candidate||!candidate.gameObject.activeInHierarchy)return;var collider=candidate.GetComponent<Collider>();if(collider&&!collider.enabled)return;
-                float d=Vector3.Distance(Player.transform.position,candidate.transform.position);if(d>distance)return;
-                Vector3 delta=candidate.transform.position-camera.transform.position;
-                if(Vector3.Dot(camera.transform.forward,delta.normalized)<.55f)return;
-                // Match interaction visibility: a wall must not reveal hidden loot.
-                var hits=Physics.RaycastAll(camera.transform.position,delta.normalized,delta.magnitude,Player.interactionMask,QueryTriggerInteraction.Ignore);
-                foreach(var hit in hits)if(!hit.transform.IsChildOf(Player.transform)&&!hit.transform.IsChildOf(candidate.transform))return;
-                focus=candidate;distance=d;
-            }
-            foreach(var w in weapons)Consider(w);foreach(var p in loot)if(p&&p.Available)Consider(p);if(Context.portal&&Context.portal.Available)Consider(Context.portal);
-            foreach(var chest in chests)if(chest&&!chest.Opened)Consider(chest);
-            if(Context.dungeon&&Context.dungeon.merchant&&Context.dungeon.merchant.Available)Consider(Context.dungeon.merchant);
+            Component focus=InteractionTarget.Find(Player);
             tooltip.gameObject.SetActive(focus&&!overlay);
             if(focus&&!overlay){tooltipText.text=DescribePickup(focus);
                 bool compare=focus is WeaponPickup;equippedComparison.enabled=groundComparison.enabled=compare;

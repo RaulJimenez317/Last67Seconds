@@ -38,7 +38,7 @@ namespace Codice.UI
             UIWidgets.Label(pausePanel,"Heading",35,30,630,60,40,ProceduralUISprites.Gold).text="ENTRE CENIZAS";
             UIWidgets.Label(pausePanel,"Pause subtitle",35,95,630,35,23).text="PAUSA  /  EL TIEMPO SE DETIENE";
             pauseClass=UIWidgets.Label(pausePanel,"Current class",35,152,630,180,21);
-            UIWidgets.Label(pausePanel,"Controls",35,330,630,70,18).text="WASD mover • Clic atacar • 1/2/Tab armas • R recargar\nEspacio/Shift dash • Q especial • E interactuar\nT / Y / U activar pasivas (10 s / recarga 20 s)";
+            UIWidgets.Label(pausePanel,"Controls",35,330,630,70,18).text="WASD mover • Espacio saltar • Shift dash • E interactuar\nClic izq. atacar • Clic der. escudo • Q especial • R recargar\n1/2/Tab armas • T/Y/U pasivas (10 s / recarga 20 s)";
             UIWidgets.Button(pausePanel,"VOLVER A LA PARTIDA [Escape]",35,415,630,50,()=>SetPaused(false));
             UIWidgets.Button(pausePanel,"IR AL MENÚ PRINCIPAL",35,490,630,50,RunNavigation.MainMenu);
             defeatPanel=Panel("Defeat",-350,-190,700,380);Anchor(defeatPanel,.5f,.5f);
