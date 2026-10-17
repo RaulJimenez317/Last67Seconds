@@ -29,6 +29,8 @@ namespace Codice.Enemies
         PlayerCharacter target;
         float cooldown, windup, repath, stagger;
         bool attacking;
+        Vector3 patrolOrigin;float patrolTimer;
+        public bool IsPatrolling {get;private set;}
         Vector3 aim, impulse;
         Quaternion weaponRest;
 
@@ -37,6 +39,8 @@ namespace Codice.Enemies
             agent = GetComponent<NavMeshAgent>();
             if (weaponPivot) weaponRest = weaponPivot.localRotation;
             Initialize(null, 1);
+            patrolOrigin=transform.position;
+            Codice.Presentation.ActorPresentation.Install(gameObject);
         }
 
         public void Initialize(PlayerCharacter player, int level = 1)
@@ -70,12 +74,14 @@ namespace Codice.Enemies
         {
             if (!IsAlive || !agent.isOnNavMesh) return;
             if (animator) animator.SetFloat("Speed", agent.velocity.magnitude);
-            if (Paused || !target || !target.State.IsAlive) { agent.isStopped = true; return; }
+            if (Paused || (target && !target.State.IsAlive)) { agent.isStopped = true; return; }
+            IsPatrolling=!target;
+            if(IsPatrolling){Patrol();return;}
             float dt = Time.deltaTime;
             cooldown -= dt; stagger -= dt; repath -= dt;
             if (impulse.sqrMagnitude > .01f) { agent.Move(impulse * dt); impulse = Vector3.MoveTowards(impulse, Vector3.zero, 18 * dt); }
             if (stagger > 0) { agent.isStopped = true; return; }
-            if (!attacking && weaponPivot) weaponPivot.localRotation = weaponRest;
+            if (!GetComponent<Codice.Presentation.ActorPresentation>() && !attacking && weaponPivot) weaponPivot.localRotation = weaponRest;
             Vector3 offset = target.transform.position - transform.position;
             float distance = offset.magnitude;
             Vector3 facing = new Vector3(offset.x, 0, offset.z);
@@ -84,7 +90,7 @@ namespace Codice.Enemies
             {
                 agent.isStopped = true;
                 windup -= dt;
-                if (weaponPivot) weaponPivot.localRotation = weaponRest * Quaternion.Euler(-45 * Mathf.Clamp01(windup / .8f), 0, 0);
+                if (!GetComponent<Codice.Presentation.ActorPresentation>() && weaponPivot) weaponPivot.localRotation = weaponRest * Quaternion.Euler(-45 * Mathf.Clamp01(windup / .8f), 0, 0);
                 if (windup <= 0)
                 {
                     attacking = false;
@@ -99,6 +105,7 @@ namespace Codice.Enemies
             if (distance <= range && visible && cooldown <= 0)
             {
                 attacking = true; windup = kind == EnemyKind.Crossbowman ? .8f : kind == EnemyKind.Heavy ? .9f : kind == EnemyKind.Mage ? 1 : .35f;
+                GetComponent<Codice.Presentation.ActorPresentation>()?.Attack(IsRanged,windup);
                 aim = target.transform.position + Vector3.up;
                 agent.isStopped = true;
                 return;
@@ -111,6 +118,13 @@ namespace Codice.Enemies
                 Vector3 goal = IsRanged && visible && distance < 5 ? transform.position - facing.normalized * 3 : target.transform.position;
                 if (NavMesh.SamplePosition(goal, out var hit, 2, agent.areaMask)) agent.SetDestination(hit.position);
             }
+        }
+
+        void Patrol()
+        {
+            patrolTimer-=Time.deltaTime;if(patrolTimer>0)return;patrolTimer=3;
+            Vector3 goal=patrolOrigin+new Vector3(Mathf.Sin(Time.time)*3,0,Mathf.Cos(Time.time)*3);
+            if(NavMesh.SamplePosition(goal,out var hit,2,agent.areaMask)){agent.isStopped=false;agent.SetDestination(hit.position);}
         }
 
         bool CanSeeTarget()
@@ -134,6 +148,7 @@ namespace Codice.Enemies
             if (!projectilePrefab) return;
             Vector3 origin = transform.position + Vector3.up * 1.2f + transform.forward * .65f;
             Vector3 direction = (aim - origin).normalized;
+            Codice.Presentation.PresentationVfx.Muzzle(weaponPivot?weaponPivot.position:origin,direction);
             int count = kind == EnemyKind.Mage ? 3 : 1;
             for (int i = 0; i < count; i++)
             {
@@ -167,6 +182,7 @@ namespace Codice.Enemies
                 killer.GetComponent<Codice.Mechanics.PlayerMechanics>()?.EnemyKilled(UltimateChargeReward);
                 Codice.Mechanics.LootPickup.DropFromEnemy(killer, transform.position);
             }
+            GetComponent<Codice.Presentation.ActorPresentation>()?.Die();
             Died?.Invoke(this);
             gameObject.SetActive(false);
             Destroy(gameObject);

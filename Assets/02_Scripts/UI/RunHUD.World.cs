@@ -53,7 +53,7 @@ namespace Codice.UI
             Camera camera=Player.view?Player.view:Camera.main;if(!camera)return;
             if(Time.unscaledTime>=nextScan){nextScan=Time.unscaledTime+.25f;ScanWorld();}
             foreach(var bar in worldBars.Values)if(bar)bar.Refresh(camera);
-            bool overlay=Paused||ShopVisible||!Player.State.IsAlive;
+            bool overlay=Paused||ShopVisible||!Player.State.IsAlive||(victoryPanel&&victoryPanel.gameObject.activeSelf);
             Component focus=null;float distance=3.5f;
             void Consider(Component candidate)
             {

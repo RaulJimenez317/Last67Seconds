@@ -1,0 +1,75 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using Codice.UI;
+using Codice.Characters;
+using Codice.Mechanics;
+using Codice.Enemies;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using Object=UnityEngine.Object;
+[InitializeOnLoad]
+public static class UICompletionBridge
+{
+    const string Dir="MapReview/UICompletion/";
+    static double next;
+    static UICompletionBridge(){EditorApplication.update+=Tick;}
+    static void Tick()
+    {
+        if(EditorApplication.timeSinceStartup<next)return;next=EditorApplication.timeSinceStartup+1;
+        Directory.CreateDirectory(Dir);
+        File.WriteAllText(Dir+"status.txt", "all="+UIRegressionChecks.Result+"\nstage="+SessionState.GetInt("UIRegression.stage",-1)+"\nactive="+SessionState.GetBool("UIRegression.active",false)+"\nplaying="+EditorApplication.isPlaying+"\ntime="+Time.time+"\nmechanics="+MechanicsChecks.Result+"\nenemies="+EnemyPlayChecks.Result+"\nboss="+BossPlayChecks.Result+"\nui="+UIChecks.Result+"\nscene="+UnityEngine.SceneManagement.SceneManager.GetActiveScene().path);
+        if(EditorApplication.isCompiling||!File.Exists(Dir+"qa.request"))return;
+        string command=File.ReadAllText(Dir+"qa.request").Trim();File.Delete(Dir+"qa.request");
+        try{Execute(command);}catch(Exception e){File.WriteAllText(Dir+"error.txt",e.ToString());}
+    }
+    static void Execute(string command)
+    {
+        var flags=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance;
+        var view=EditorWindow.GetWindow(typeof(Editor).Assembly.GetType("UnityEditor.GameView"));
+        var size=view.GetType().GetProperty("selectedSizeIndex",flags);
+        if(command=="sizes"){
+            var group=view.GetType().GetProperty("currentGameViewSizeGroupType",flags);
+            File.WriteAllText(Dir+"sizes.txt",string.Join("\n",view.GetType().GetMembers(flags).Select(m=>m.MemberType+" "+m.Name)));
+            return;
+        }
+        if(command.StartsWith("start:")){
+            SessionState.SetString("QA.original",UnityEngine.SceneManagement.SceneManager.GetActiveScene().path);
+            SessionState.SetInt("QA.size",(int)size.GetValue(view));
+            EditorSceneManager.OpenScene("Assets/00_Scenes/Maps/"+command.Substring(6)+".unity");
+            EditorApplication.isPlaying=true;return;
+        }
+        if(command=="stop"){
+            Time.timeScale=1;EditorApplication.isPlaying=false;return;
+        }
+        if(command=="restore"){
+            size.SetValue(view,SessionState.GetInt("QA.size",0));EditorSceneManager.OpenScene(SessionState.GetString("QA.original","Assets/00_Scenes/Maps/Coliseo.unity"));return;
+        }
+        if(command.StartsWith("size:")){size.SetValue(view,int.Parse(command.Substring(5)));return;}
+        if(command.StartsWith("capture:")){ScreenCapture.CaptureScreenshot(Dir+command.Substring(8)+".png");EditorApplication.QueuePlayerLoopUpdate();return;}
+        var hud=RunHUD.Instance;var player=hud.Player;
+        if(command=="tooltip"){
+            foreach(var e in Object.FindObjectsByType<BasicEnemy>(FindObjectsSortMode.None))e.SetPaused(true);
+            var camera=player.view;
+            player.GetComponent<PlayerCombat>().CreatePickup(new WeaponInstance(WeaponKind.Sword,4),camera.transform.position+camera.transform.forward*1.8f-Vector3.up*.4f);
+            Time.timeScale=0;hud.Refresh();return;
+        }
+        if(command=="pause"){hud.SetPaused(true);return;}
+        if(command=="boss"){
+            hud.Context.arena.ActiveBoss.SetPaused(true);Time.timeScale=0;hud.Refresh();return;
+        }
+        if(command=="shop"){
+            hud.SetPaused(false);
+            var director=RunDirector.Instance;
+            foreach(var e in Object.FindObjectsByType<BasicEnemy>(FindObjectsSortMode.None)){
+                if(director.Phase==RunPhase.Shop)break;
+                e.SetPaused(false);e.ReceiveDamage(new DamageInfo{amount=10000,source=player.gameObject,ignoreGuard=true});
+            }
+            var merchant=hud.Context.dungeon.merchant;
+            var cc=player.GetComponent<CharacterController>();cc.enabled=false;player.transform.position=merchant.transform.position+Vector3.forward*2;cc.enabled=true;
+            player.State.AddGold(1000);merchant.Interact(player);return;
+        }
+    }
+}

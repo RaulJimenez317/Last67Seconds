@@ -32,6 +32,7 @@ namespace Codice.Bosses
                 }
                 if (explosive)
                 {
+                    Codice.Presentation.PresentationVfx.Explosion(hit.point);
                     var target = owner.Target;
                     Vector3 delta = target.transform.position + Vector3.up - hit.point;
                     bool blocked = Physics.Linecast(hit.point + hit.normal * .2f, target.transform.position + Vector3.up, out var obstruction, ~0, QueryTriggerInteraction.Ignore);
@@ -41,6 +42,7 @@ namespace Codice.Bosses
                 if (attack == BossAttack.Mud) BossMud.Create(owner, hit.point);
                 var pillar = hit.collider.GetComponentInParent<Codice.Mechanics.DestructiblePillar>();
                 if (pillar) pillar.ReceiveDamage(new DamageInfo { amount = damage, source = owner.gameObject });
+                Codice.Presentation.PresentationVfx.Impact(hit.point,hit.normal);
                 Destroy(gameObject); return;
             }
             transform.position += step;

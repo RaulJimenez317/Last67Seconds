@@ -22,6 +22,7 @@ namespace Codice.Characters
             {
                 if (owner && hit.transform.IsChildOf(owner.transform)) continue;
                 hit.collider.GetComponentInParent<IDamageReceiver>()?.ReceiveDamage(new DamageInfo { amount = damage, critical = critical, hasImpactPoint = true, impactPoint = hit.point, direction = direction, source = owner });
+                Codice.Presentation.PresentationVfx.Impact(hit.point,hit.normal);
                 Destroy(gameObject); return;
             }
             transform.position += direction * distance;

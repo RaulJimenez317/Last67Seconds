@@ -38,6 +38,8 @@ namespace Codice.Characters
             controller = GetComponent<CharacterController>();
             state.Initialize(initialClass); initialized = true;
             ApplyVisual(); state.Died += OnDeath;
+            Codice.Presentation.ActorPresentation.Install(gameObject);
+            mouseSensitivity = PlayerPrefs.GetFloat("Codice.Sensitivity", mouseSensitivity);
         }
         void Start() { CaptureCursor(true); }
         void OnDestroy() { state.Died -= OnDeath; }

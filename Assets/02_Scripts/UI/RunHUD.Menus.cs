@@ -6,7 +6,7 @@ namespace Codice.UI
 {
     public sealed partial class RunHUD
     {
-        RectTransform shopPanel,pausePanel,defeatPanel,modalShade;
+        RectTransform shopPanel,pausePanel,defeatPanel,victoryPanel,modalShade;
         readonly Button[] buyButtons=new Button[4],replaceButtons=new Button[3];
         readonly Text[] offerTexts=new Text[4];
         readonly Image[] offerIcons=new Image[4];
@@ -35,13 +35,21 @@ namespace Codice.UI
             pausePanel=Panel("Pause",-350,-250,700,500);Anchor(pausePanel,.5f,.5f);
             UIWidgets.Label(pausePanel,"Heading",35,30,630,60,40,ProceduralUISprites.Gold).text="ENTRE CENIZAS";
             UIWidgets.Label(pausePanel,"Pause subtitle",35,95,630,35,23).text="PAUSA  /  EL TIEMPO SE DETIENE";
-            pauseClass=UIWidgets.Label(pausePanel,"Inspector class",35,152,630,180,21);
+            pauseClass=UIWidgets.Label(pausePanel,"Current class",35,152,630,180,21);
             UIWidgets.Label(pausePanel,"Controls",35,330,630,60,18).text="WASD mover • Clic atacar • 1/2/Tab armas\nEspacio/Shift dash • Q/Clic derecho especial • E recoger";
             UIWidgets.Button(pausePanel,"VOLVER A LA PARTIDA [Escape]",35,415,630,50,()=>SetPaused(false));
             defeatPanel=Panel("Defeat",-350,-190,700,380);Anchor(defeatPanel,.5f,.5f);
             UIWidgets.Label(defeatPanel,"Heading",35,38,630,60,42,ProceduralUISprites.Crimson).text="LAS CENIZAS TE RECLAMAN";
-            UIWidgets.Label(defeatPanel,"Description",35,125,630,85,22).text="Tu viaje termina aquí.\nVuelve al Calabozo y comienza una nueva partida.";
-            UIWidgets.Button(defeatPanel,"VOLVER AL CALABOZO [R]",35,272,630,55,()=>{SetPaused(false);if(director)director.RestartRun();});
+            UIWidgets.Label(defeatPanel,"Description",35,125,630,85,22).text="Tu viaje termina aquí.\nRepite el nivel o regresa al menú principal.";
+            UIWidgets.Button(defeatPanel,"VOLVER A JUGAR",35,230,630,50,()=>{SetPaused(false);if(director)director.RestartLevel();});
+            UIWidgets.Button(defeatPanel,"IR AL MENÚ PRINCIPAL",35,300,630,50,RunNavigation.MainMenu);
+            victoryPanel=Panel("Victory",-350,-250,700,500);Anchor(victoryPanel,.5f,.5f);
+            UIWidgets.Label(victoryPanel,"Heading",35,38,630,65,40,ProceduralUISprites.Gold).text="VICTORIA EN EL COLISEO";
+            UIWidgets.Label(victoryPanel,"Description",35,125,630,80,23).text="El señor del Coliseo ha caído.\nTu viaje puede continuar.";
+            UIWidgets.Button(victoryPanel,"CONTINUAR VIAJE",35,230,630,55,()=>{if(director)director.Travel();});
+            UIWidgets.Button(victoryPanel,"VOLVER A JUGAR",35,310,630,55,()=>{if(director)director.RestartLevel();});
+            UIWidgets.Button(victoryPanel,"IR AL MENÚ PRINCIPAL",35,390,630,55,RunNavigation.MainMenu);
+            victoryPanel.gameObject.SetActive(false);
             modalShade.gameObject.SetActive(false);shopPanel.gameObject.SetActive(false);pausePanel.gameObject.SetActive(false);defeatPanel.gameObject.SetActive(false);
         }
         public void SetPaused(bool paused)
@@ -60,13 +68,15 @@ namespace Codice.UI
         void UpdateMenus()
         {
             bool dead=!Player.State.IsAlive;
+            bool won=Context.IsArena&&director&&director.Phase==Codice.Mechanics.RunPhase.Cleared&&!dead;
+            victoryPanel.gameObject.SetActive(won&&!Paused);
             var current=Context.dungeon?Context.dungeon.merchant:null;
             bool shopping=current&&current.Customer==Player;
             if(merchant!=current){merchant=current;replacement=-1;}
-            modalShade.gameObject.SetActive(Paused||dead||shopping);shopPanel.gameObject.SetActive(shopping&&!dead&&!Paused);pausePanel.gameObject.SetActive(Paused&&!dead);defeatPanel.gameObject.SetActive(dead);
-            if(dead){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
+            modalShade.gameObject.SetActive(Paused||dead||shopping||won);shopPanel.gameObject.SetActive(shopping&&!dead&&!Paused);pausePanel.gameObject.SetActive(Paused&&!dead);defeatPanel.gameObject.SetActive(dead);
+            if(dead||won){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
             if(Paused)
-            {var s=Player.State;pauseClass.text=$"CLASE DEL INSPECTOR: {new[]{"Guerrero","Tanque","Arquero"}[(int)s.Class]}\nVida base {s.MaxHealth:0} • Velocidad actual {s.MoveSpeed:0.0}\n\nGuerrero 120 HP / 6.5 m/s\nTanque 180 HP / 4.8 m/s • Arquero 100 HP / 6.2 m/s";}
+            {var s=Player.State;pauseClass.text=$"CLASE: {new[]{"Guerrero","Tanque","Arquero"}[(int)s.Class]}\nVida base {s.MaxHealth:0} • Velocidad actual {s.MoveSpeed:0.0}\n\nGuerrero 120 HP / 6.5 m/s\nTanque 180 HP / 4.8 m/s • Arquero 100 HP / 6.2 m/s";}
             if(!shopping)return;
             shopGold.text=$"◆ {Player.State.Gold} ORO";
             for(int i=0;i<4;i++)

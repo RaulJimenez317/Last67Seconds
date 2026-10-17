@@ -46,6 +46,7 @@ namespace Codice.Bosses
         void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
+            Codice.Presentation.ActorPresentation.Install(gameObject);
             if (!visual) return;
             rest = visual.localRotation;
             foreach (var bone in visual.GetComponentsInChildren<Transform>())
@@ -89,7 +90,7 @@ namespace Codice.Bosses
             if (CurrentAttack != BossAttack.None)
             {
                 agent.isStopped = true; windup -= dt;
-                if (visual) visual.localRotation = rest * Quaternion.Euler(-20 * Mathf.Clamp01(windup), 0, 0);
+                if (visual && !GetComponent<Codice.Presentation.ActorPresentation>()) visual.localRotation = rest * Quaternion.Euler(-20 * Mathf.Clamp01(windup), 0, 0);
                 if (windup <= 0)
                 {
                     ExecuteAttack(); CurrentAttack = BossAttack.None;
@@ -111,6 +112,7 @@ namespace Codice.Bosses
                 facing = transform.forward; windup = CurrentAttack == BossAttack.Slam ? 1.15f : .9f;
                 if (bowWeapon) bowWeapon.SetActive(bow);
                 if (meleeWeapon) meleeWeapon.SetActive(!bow);
+                GetComponent<Codice.Presentation.ActorPresentation>()?.Attack(CurrentAttack==BossAttack.Bow||CurrentAttack==BossAttack.Rock||CurrentAttack==BossAttack.Mud,windup);
                 agent.isStopped = true; Changed?.Invoke(this); return;
             }
             agent.isStopped = delta.magnitude <= range * .8f && HasLineOfSight(Target.transform.position + Vector3.up);
@@ -122,7 +124,7 @@ namespace Codice.Bosses
         Vector3 retreatDirection;
         void LateUpdate()
         {
-            if (IsAlive && !Paused)
+            if (IsAlive && !Paused && !GetComponent<Codice.Presentation.ActorPresentation>())
             {
                 float lift = CurrentAttack == BossAttack.None ? 0 : Mathf.Sin(Mathf.Clamp01(windup) * Mathf.PI) * 40;
                 if (leftArm) leftArm.localRotation = leftRest * Quaternion.Euler(0, 0, -35 + lift);
@@ -206,6 +208,7 @@ namespace Codice.Bosses
                 Cleanup();
                 var killer = hit.source ? hit.source.GetComponentInParent<PlayerCharacter>() : null;
                 if (killer && killer.State.IsAlive) killer.State.AddGold(goldReward);
+                GetComponent<Codice.Presentation.ActorPresentation>()?.Die();
                 Died?.Invoke(this); gameObject.SetActive(false); Destroy(gameObject); return;
             }
             if (Phase != previousPhase) summonTimer = Mathf.Min(summonTimer, SummonInterval);

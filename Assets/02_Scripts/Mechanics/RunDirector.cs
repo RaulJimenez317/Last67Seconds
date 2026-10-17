@@ -20,7 +20,7 @@ namespace Codice.Mechanics
         public event Action Changed;
         public event Action<string> Notice;
         RunScene scene;
-        string snapshot;
+        string snapshot,checkpoint,checkpointScene;int checkpointLevel;float checkpointElapsed;
         bool transition;
         void Awake()
         {
@@ -55,6 +55,7 @@ namespace Codice.Mechanics
         }
         void BeginRound()
         {
+            checkpoint=Player.State.Capture();checkpointScene=SceneManager.GetActiveScene().name;checkpointLevel=Level;checkpointElapsed=Elapsed;
             scene.portal.SetAvailable(false);
             RoundElapsed = 0; SetPhase(RunPhase.Combat);
             bool started = scene.IsArena ? scene.arena.BeginEncounter(Level) : scene.dungeon.BeginEncounter(Level, RoundRules.Roster(Level));
@@ -102,6 +103,12 @@ namespace Codice.Mechanics
             if (Phase != RunPhase.Defeated || transition) return false;
             transition = true; snapshot = null; Level = 1; Elapsed = RoundElapsed = 0;
             SceneManager.LoadSceneAsync("Calabozo", LoadSceneMode.Single); return true;
+        }
+        public bool RestartLevel()
+        {
+            if(transition||string.IsNullOrEmpty(checkpoint)||(Phase!=RunPhase.Defeated&&Phase!=RunPhase.Cleared))return false;
+            StopAllCoroutines();transition=true;snapshot=checkpoint;Level=checkpointLevel;Elapsed=checkpointElapsed;RoundElapsed=0;Time.timeScale=1;
+            SetPhase(RunPhase.Travelling);SceneManager.LoadSceneAsync(checkpointScene,LoadSceneMode.Single);return true;
         }
         void SetPhase(RunPhase phase) { Phase = phase; Changed?.Invoke(); }
         void SpawnLoot()

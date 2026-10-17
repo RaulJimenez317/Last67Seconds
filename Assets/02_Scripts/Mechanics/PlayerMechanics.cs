@@ -130,8 +130,11 @@ namespace Codice.Mechanics
                     if (kind == WeaponKind.Musket && target && HealthOf(target) > 0) StartCoroutine(Bleed(target, damage * .2f));
                 }
                 if (kind == WeaponKind.Musket)
+                    {
+                    Codice.Presentation.PresentationVfx.Explosion(explosion);
                     foreach (var target in CombatTargets.InRadius(explosion, 2.5f))
                         if (!targets.Contains(target)) CombatTargets.Hit(target, player, damage * .5f, true);
+                }
                 if (kind == WeaponKind.Bow)
                     for (int i = 0; i < 4; i++)
                     {

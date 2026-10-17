@@ -1,0 +1,10 @@
+all=ALL_UI_REGRESSIONS_PASSED: 236 previous + 50 UI = 286
+stage=4
+active=False
+playing=False
+time=0,2492034
+mechanics=Not run
+enemies=Not run
+boss=Not run
+ui=Not run
+scene=Assets/00_Scenes/Maps/Coliseo.unity

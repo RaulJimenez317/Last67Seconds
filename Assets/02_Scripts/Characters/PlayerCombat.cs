@@ -32,6 +32,7 @@ namespace Codice.Characters
             if (weaponModels == null || index >= weaponModels.Length || !weaponModels[index]) return;
             pickup.visual = Instantiate(weaponModels[index], pickup.transform);
             pickup.visual.transform.localPosition = Vector3.zero;
+            pickup.visual.transform.localScale = weaponModels[index].transform.lossyScale;
             pickup.visual.transform.localRotation = Quaternion.identity;
             pickup.visual.SetActive(true);
         }
@@ -41,7 +42,7 @@ namespace Codice.Characters
             var weapon = player.State.ActiveWeapon;
             if (weapon == null) return;
             UpdateWeapon(weapon);
-            if (displayed)
+            if (displayed && !GetComponent<Codice.Presentation.ActorPresentation>())
             {
                 float phase = Mathf.Clamp01((Time.time - lastAttack) / .25f);
                 displayed.localRotation = Quaternion.Euler(-30 * Mathf.Sin(phase * Mathf.PI), 0, -25 * Mathf.Sin(phase * Mathf.PI));
@@ -73,10 +74,13 @@ namespace Codice.Characters
             lastAttack = Time.time; nextAttack = Time.time + 1 / (weapon.AttacksPerSecond * player.State.AttackSpeedMultiplier);
             var mechanics = GetComponent<Codice.Mechanics.PlayerMechanics>();
             if (weapon.kind == WeaponKind.Shield && mechanics) mechanics.RaiseShield();
+            GetComponent<Codice.Presentation.ActorPresentation>()?.Attack(weapon.Ranged, 1 / (weapon.AttacksPerSecond * player.State.AttackSpeedMultiplier));
             var origin = player.view.transform.position;
             var forward = player.view.transform.forward;
             if (weapon.Ranged)
             {
+                Vector3 muzzle=displayed?displayed.position:origin+forward*.6f;
+                Codice.Presentation.PresentationVfx.Muzzle(muzzle,forward);
                 if (weapon.kind == WeaponKind.Musket)
                 {
                     var hits = Physics.RaycastAll(origin, forward, 60, hitMask, QueryTriggerInteraction.Ignore);
@@ -85,6 +89,7 @@ namespace Codice.Characters
                     foreach (var hit in hits)
                     {
                         if (hit.transform.IsChildOf(transform)) continue;
+                        Codice.Presentation.PresentationVfx.Impact(hit.point,hit.normal);
                         var receiver = hit.collider.GetComponentInParent<IDamageReceiver>();
                         if (receiver == null) break;
                         if (struck.Add(receiver)) Hit(hit.collider, weapon, forward);

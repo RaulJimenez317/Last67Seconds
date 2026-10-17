@@ -29,6 +29,7 @@ namespace Codice.Enemies
                 if (player) player.ReceiveDamage(new DamageInfo { amount = damage, direction = velocity.normalized, source = owner ? owner.gameObject : gameObject });
                 var pillar = hit.collider.GetComponentInParent<Codice.Mechanics.DestructiblePillar>();
                 if (pillar) pillar.ReceiveDamage(new DamageInfo { amount = damage });
+                Codice.Presentation.PresentationVfx.Impact(hit.point,hit.normal);
                 Destroy(gameObject); return;
             }
             transform.position += step;
