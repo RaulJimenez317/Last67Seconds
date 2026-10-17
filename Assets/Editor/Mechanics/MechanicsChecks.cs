@@ -37,10 +37,10 @@ public static class MechanicsChecks
         Check(RoundRules.Roster(5).Length == 0 && RoundRules.IsBoss(20), "boss levels exclude dungeon");
         Check(RoundRules.Roster(3).Count(k => k == EnemyKind.Heavy) == 1, "round three heavy");
         var state = new CharacterState(); state.Initialize(PlayerClass.Archer);
-        state.ConsumeAmmo(); state.EquipPassive(PassiveKind.Frenzy); state.TickAmmunition(1.125f);
+        state.ConsumeAmmo(); state.EquipPassive(PassiveKind.Frenzy); state.ActivatePassive(0); state.TickAmmunition(1.125f);
         Check(state.ActiveWeapon.ammunition == 8, "frenzy arrow regeneration");
         Near(state.AttackSpeedMultiplier, 1.25f, "frenzy attack speed");
-        state.EquipPassive(PassiveKind.MercuryBoots); Near(state.MoveSpeed, 7.44f, "mercury speed");
+        state.EquipPassive(PassiveKind.MercuryBoots); state.ActivatePassive(1); Near(state.MoveSpeed, 7.44f, "mercury speed");
         state.EquipPassive(PassiveKind.Overload); Check(!state.EquipPassive(PassiveKind.ThornArmor), "fourth passive needs replacement");
         Check(state.EquipPassive(PassiveKind.ThornArmor, 0) && !state.HasPassive(PassiveKind.Frenzy), "replace passive removes old effect");
         Check(!state.EquipPassive(PassiveKind.ThornArmor, 1), "reject duplicate");
@@ -83,7 +83,7 @@ public static class MechanicsChecks
         }
         try
         {
-            player.State.Initialize(PlayerClass.Warrior); player.State.EquipPassive(PassiveKind.ThornArmor);
+            player.State.Initialize(PlayerClass.Warrior); player.State.EquipPassive(PassiveKind.ThornArmor); player.State.ActivatePassive(0);
             var attacker = Enemy(EnemyKind.Swordsman, new Vector3(2, .1f, -4));
             player.ReceiveDamage(new DamageInfo { amount = 20, melee = true, source = attacker.gameObject });
             Near(player.State.Health, 104, "thorn armor reduction"); Near(attacker.Health, 30, "thorn armor reflection");
@@ -92,14 +92,14 @@ public static class MechanicsChecks
             player.State.Initialize(PlayerClass.Warrior); player.State.Equip(new WeaponInstance(WeaponKind.Shield)); mechanics.RaiseShield();
             player.ReceiveDamage(new DamageInfo { amount = 20, direction = Vector3.back }); Near(player.State.Health, 110, "frontal shield reduction");
             player.ReceiveDamage(new DamageInfo { amount = 20, direction = Vector3.forward }); Near(player.State.Health, 90, "shield rear vulnerability");
-            player.State.Initialize(PlayerClass.Warrior); player.State.EquipPassive(PassiveKind.VampiricHeart); player.State.Damage(50);
-            player.State.EquipPassive(PassiveKind.Overload);
+            player.State.Initialize(PlayerClass.Warrior); player.State.EquipPassive(PassiveKind.VampiricHeart); player.State.ActivatePassive(0); player.State.Damage(50);
+            player.State.EquipPassive(PassiveKind.Overload); player.State.ActivatePassive(1);
             var victim = Enemy(EnemyKind.Heavy, Vector3.zero);
             victim.ReceiveDamage(new DamageInfo { amount = 1000, breaksGuard = true, source = root });
             Near(player.State.Health, 74.8f, "vampiric kill heal"); Near(mechanics.Charge, 18, "heavy charge with overload");
             for (int i = 0; i < 10; i++) mechanics.BossHit();
             Near(player.State.Health, 79.6f, "every tenth boss hit heal"); Near(mechanics.Charge, 48, "boss charge with overload");
-            player.State.Initialize(PlayerClass.Warrior); player.State.EquipPassive(PassiveKind.MercuryBoots);
+            player.State.Initialize(PlayerClass.Warrior); player.State.EquipPassive(PassiveKind.MercuryBoots); player.State.ActivatePassive(0);
             Check(player.TryDash(Vector3.forward), "first dash"); await Task.Delay(350);
             Check(player.TryDash(Vector3.forward), "mercury second dash"); await Task.Delay(350);
             Check(!player.TryDash(Vector3.forward), "dash charges exhausted");
@@ -185,7 +185,7 @@ public static class MechanicsChecks
         await WaitFor(() => director.Player && SceneManager.GetActiveScene().name == "Coliseo" && director.Phase == RunPhase.Combat);
         var arena = Object.FindFirstObjectByType<BossEncounter>(); arena.ActiveBoss.SetPaused(true);
         Check(director.Level == 5 && arena.ActiveBoss.kind == BossKind.GoblinKing, "level five boss");
-        Check(director.Player.State.Gold == gold && director.Player.State.HasPassive(PassiveKind.MercuryBoots), "travel preserves inventory");
+        Check(director.Player.State.Gold == gold && Enumerable.Range(0,director.Player.State.PassiveCount).Any(i=>director.Player.State.GetPassive(i)==PassiveKind.MercuryBoots), "travel preserves inventory");
         Check(director.Player.State.ActiveWeapon.kind == WeaponKind.Musket && director.Player.State.ActiveWeapon.tier == 3 && director.Player.State.ActiveWeapon.ammunition == 3, "travel preserves weapon and ammunition");
         Near(director.Player.State.Health, 113, "travel preserves health");
         Check(Object.FindObjectsByType<DestructiblePillar>(FindObjectsSortMode.None).Length == 4, "four destructible pillars");

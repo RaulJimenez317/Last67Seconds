@@ -33,8 +33,8 @@ namespace Codice.UI
             }
             if(item is LootPickup p)
             {
-                if(p.kind==LootKind.Ammunition)return $"SUMINISTROS  /  +{p.amount} munición\n[E] Recoger con el arma que necesita munición";
-                string text=UIWidgets.Passive(p.passive)+"\n[E] Equipar pasiva";
+                if(p.kind==LootKind.Ammunition)return $"SUMINISTROS  /  +{p.amount} munición\nTocar / [E] recoger con el arma que necesita munición";
+                string text=UIWidgets.Passive(p.passive)+"\nTocar / [E] recoger • T/Y/U activar (10 s)";
                 if(Player.State.PassiveCount==3){text="REEMPLAZAR POR: "+UIWidgets.Passive(p.passive);for(int i=0;i<3;i++)text+="\n["+new[]{"Shift","Ctrl","Alt"}[i]+" + E] "+UIWidgets.Passive(Player.State.GetPassive(i));}
                 return text;
             }

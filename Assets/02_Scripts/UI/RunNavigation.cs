@@ -6,14 +6,21 @@ namespace Codice.UI
     public static class RunNavigation
     {
         static AsyncOperation loading;
-        public static bool Loading=>loading!=null&&!loading.isDone;
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void Reset()=>loading=null;
+        static bool transitioning;
+        internal static bool SceneLoading=>loading!=null&&!loading.isDone;
+        public static bool Loading=>transitioning||SceneLoading;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void Reset(){loading=null;transitioning=false;}
         public static void StartGame()=>Load("Calabozo");
         public static void MainMenu()=>Load("MainMenu");
         static void Load(string scene)
         {
             if(Loading)return;
             if(!Application.CanStreamedLevelBeLoaded(scene)){Debug.LogError("Missing scene: "+scene);return;}
+            transitioning=true; SceneTransition.Begin(scene);
+        }
+        internal static void FinishTransition(){transitioning=false;}
+        internal static void LoadSceneNow(string scene)
+        {
             Time.timeScale=1;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;
             if(RunDirector.Instance){RunDirector.Instance.StopAllCoroutines();RunDirector.Instance.gameObject.SetActive(false);Object.Destroy(RunDirector.Instance.gameObject);}
             loading=SceneManager.LoadSceneAsync(scene);

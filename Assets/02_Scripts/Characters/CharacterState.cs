@@ -13,6 +13,7 @@ namespace Codice.Characters
         public WeaponKind kind;
         [Range(1, 4)] public int tier = 1;
         public int ammunition;
+        public int reserveAmmunition = 18;
         public float reloadProgress;
         [Range(0, 100)] public float ultimateCharge;
         public float Damage => Mathf.Lerp(BaseDamage, MaxDamage, (tier - 1) / 3f);
@@ -36,6 +37,23 @@ namespace Codice.Characters
         [SerializeField] int activeSlot;
         [SerializeField] PassiveKind[] passives = new PassiveKind[3];
         [SerializeField] int passiveCount;
+        [SerializeField] float[] passiveRemaining = new float[3];
+        [SerializeField] float[] passiveCooldown = new float[3];
+        public const float PassiveDuration = 10, PassiveCooldown = 20;
+        public float PassiveTime(int slot) => slot >= 0 && slot < passiveCount ? passiveRemaining[slot] : 0;
+        public float PassiveWait(int slot) => slot >= 0 && slot < passiveCount ? passiveCooldown[slot] : 0;
+        public bool ActivatePassive(int slot)
+        {
+            if (!IsAlive || slot < 0 || slot >= passiveCount || passiveCooldown[slot] > 0) return false;
+            passiveRemaining[slot] = PassiveDuration; passiveCooldown[slot] = PassiveCooldown;
+            Changed?.Invoke(); return true;
+        }
+        public void TickPassives(float dt)
+        {
+            if (!IsAlive || dt <= 0 || float.IsNaN(dt) || float.IsInfinity(dt)) return;
+            for (int i = 0; i < passiveCount; i++)
+            { passiveRemaining[i] = Mathf.Max(0, passiveRemaining[i] - dt); passiveCooldown[i] = Mathf.Max(0, passiveCooldown[i] - dt); }
+        }
         public event Action Changed;
         public event Action Died;
         public PlayerClass Class => playerClass;
@@ -43,7 +61,7 @@ namespace Codice.Characters
         public float MoveSpeed => (playerClass == PlayerClass.Tank ? 4.8f : playerClass == PlayerClass.Archer ? 6.2f : 6.5f) * (HasPassive(PassiveKind.MercuryBoots) ? 1.2f : 1);
         public float AttackSpeedMultiplier => HasPassive(PassiveKind.Frenzy) ? 1.25f : 1;
         public bool HasPassive(PassiveKind passive)
-        { for (int i = 0; i < passiveCount; i++) if (passives[i] == passive) return true; return false; }
+        { for (int i = 0; i < passiveCount; i++) if (passives[i] == passive && passiveRemaining[i] > 0) return true; return false; }
         public string Capture() => JsonUtility.ToJson(this);
         public void Restore(string snapshot) { JsonUtility.FromJsonOverwrite(snapshot, this); Changed?.Invoke(); }
         public void NotifyChanged() => Changed?.Invoke();
@@ -59,6 +77,7 @@ namespace Codice.Characters
         public void Initialize(PlayerClass selected)
         {
             playerClass = selected; health = MaxHealth; gold = 0; activeSlot = 0; passiveCount = 0;
+            passiveRemaining = new float[3]; passiveCooldown = new float[3];
             weapons = new WeaponInstance[2];
             weapons[0] = new WeaponInstance(selected == PlayerClass.Tank ? WeaponKind.Axe : selected == PlayerClass.Archer ? WeaponKind.Bow : WeaponKind.Sword);
             Changed?.Invoke();
@@ -105,7 +124,8 @@ namespace Codice.Characters
         public bool EquipPassive(PassiveKind passive, int replaceSlot = -1)
         {
             if (!CanEquipPassive(passive, replaceSlot)) return false;
-            if (passiveCount < 3) passives[passiveCount++] = passive; else passives[replaceSlot] = passive;
+            int slot = passiveCount < 3 ? passiveCount++ : replaceSlot;
+            passives[slot] = passive; passiveRemaining[slot] = passiveCooldown[slot] = 0;
             Changed?.Invoke(); return true;
         }
         public bool ConsumeAmmo()
@@ -118,7 +138,14 @@ namespace Codice.Characters
         public bool AddAmmunition(int amount)
         {
             var weapon = ActiveWeapon;
-            if (!IsAlive || amount <= 0 || weapon == null || weapon.Capacity == 0 || weapon.ammunition >= weapon.Capacity) return false;
+            if (!IsAlive || amount <= 0 || weapon == null || weapon.Capacity == 0) return false;
+            if (weapon.kind == WeaponKind.Musket)
+            {
+                if (weapon.reserveAmmunition >= 60) return false;
+                weapon.reserveAmmunition += Mathf.Min(amount, 60 - weapon.reserveAmmunition);
+                Changed?.Invoke(); return true;
+            }
+            if (weapon.ammunition >= weapon.Capacity) return false;
             weapon.ammunition += Mathf.Min(amount, weapon.Capacity - weapon.ammunition);
             Changed?.Invoke(); return true;
         }

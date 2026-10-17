@@ -40,7 +40,7 @@ public static class UIChecks
             state.Heal(20);hud.Refresh();Check(hud.PlayerHealth.Fill.fillAmount==1&&hud.PlayerHealth.Ghost.fillAmount==1,"healing updates both bars");
             mechanics.AddCharge(100);hud.Refresh();Check(hud.UltimateMeter.fillAmount==1,"ultimate linked to charge");Check(hud.UltimateMeter.fillMethod==Image.FillMethod.Radial360,"radial 360");
             state.Equip(new WeaponInstance(WeaponKind.Bow,4));state.ConsumeAmmo();hud.Refresh();Check(state.ActiveWeapon.ammunition==11,"real hotbar inventory");
-            state.EquipPassive(PassiveKind.MercuryBoots);Check(player.TryDash(Vector3.forward),"primary dash");await Task.Delay(400);Check(player.TryDash(Vector3.forward)&&player.SecondDashCooldown>0,"second dash shown from actual cooldown");
+            state.EquipPassive(PassiveKind.MercuryBoots);state.ActivatePassive(0);Check(player.TryDash(Vector3.forward),"primary dash");await Task.Delay(400);Check(player.TryDash(Vector3.forward)&&player.SecondDashCooldown>0,"second dash shown from actual cooldown");
             float elapsed=director.Elapsed;hud.SetPaused(true);await Task.Delay(200);Check(Time.timeScale==0&&Mathf.Abs(director.Elapsed-elapsed)<.02f,"pause freezes simulation and clocks");hud.SetPaused(false);Check(Time.timeScale==1,"resume restores simulation");
             var pickup=new GameObject("UI test pickup").AddComponent<WeaponPickup>();pickup.weapon=new WeaponInstance(WeaponKind.Sword,3);Check(hud.DescribePickup(pickup).Contains("EQUIPADA")&&hud.DescribePickup(pickup).Contains("SUELO"),"weapon comparison");Object.Destroy(pickup.gameObject);
             state.EquipPassive(PassiveKind.Frenzy);state.EquipPassive(PassiveKind.Overload);

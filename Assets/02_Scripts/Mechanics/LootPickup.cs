@@ -16,6 +16,11 @@ namespace Codice.Mechanics
         public bool Available => Time.time >= readyAt;
         float readyAt;
         bool consumed;
+        void OnTriggerEnter(Collider other)
+        {
+            var player = other.GetComponentInParent<PlayerCharacter>();
+            if (player) TryCollect(player);
+        }
         void Update()
         {
             if (respawns && consumed && Available)
@@ -31,7 +36,7 @@ namespace Codice.Mechanics
         }
         public bool TryCollect(PlayerCharacter player, int replaceSlot = -1)
         {
-            if (consumed || !Available || !player || !player.State.IsAlive || player.ControlsBlocked || Vector3.Distance(transform.position, player.transform.position) > 3.5f) return false;
+            if (consumed || !Available || !player || !player.State.IsAlive || player.ControlsBlocked || Time.timeScale == 0 || Vector3.Distance(transform.position, player.transform.position) > 3.5f) return false;
             bool received = kind == LootKind.Ammunition ? player.State.AddAmmunition(amount) : player.State.EquipPassive(passive, replaceSlot);
             if (!received) return false;
             consumed = true; SetVisible(false);
@@ -45,6 +50,7 @@ namespace Codice.Mechanics
             var pickup = obj.AddComponent<LootPickup>(); pickup.kind = kind; pickup.amount = amount;
             pickup.passive = (PassiveKind)Random.Range(0, 5);
             var trigger = obj.AddComponent<SphereCollider>(); trigger.radius = .4f; trigger.isTrigger = true;
+            var body = obj.AddComponent<Rigidbody>(); body.isKinematic = true; body.useGravity = false;
             var visual = GameObject.CreatePrimitive(kind == LootKind.Passive ? PrimitiveType.Sphere : PrimitiveType.Cube);
             visual.name = "Pickup indicator"; Destroy(visual.GetComponent<Collider>());
             visual.transform.SetParent(obj.transform, false); visual.transform.localScale = Vector3.one * .3f;

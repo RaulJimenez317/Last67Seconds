@@ -9,6 +9,7 @@ namespace Codice.Bosses
 {
     public enum BossKind { GoblinKing, DemonLord }
     public enum BossAttack { None, Rock, Mud, Sweep, Slam, Bow }
+    public enum BossState { Idle, Moving, Windup, Recovery, Stunned, Dead }
 
     [RequireComponent(typeof(NavMeshAgent), typeof(CapsuleCollider))]
     public sealed class BossCharacter : MonoBehaviour, IDamageReceiver
@@ -29,6 +30,7 @@ namespace Codice.Bosses
         public int Phase => kind == BossKind.GoblinKing ? 1 : Health > MaxHealth * .65f + .001f ? 1 : Health > MaxHealth * .30f + .001f ? 2 : 3;
         public float SpeedMultiplier => kind == BossKind.DemonLord ? 1 + .3f * (Phase - 1) : 1;
         public BossAttack CurrentAttack { get; private set; }
+        public BossState State { get; private set; }
         public event Action<BossCharacter> Changed, Died, HitByPlayer;
         public PlayerCharacter Target { get; private set; }
         NavMeshAgent agent;
@@ -60,7 +62,8 @@ namespace Codice.Bosses
             Target = player; Level = Mathf.Max(1, level); Evolved = Level >= 15;
             MaxHealth = baseHealth * (Evolved ? 1.5f : 1); Health = MaxHealth;
             summonTimer = SummonInterval; attackTimer = 2; healthSummons = sequence = 0;
-            CurrentAttack = BossAttack.None;
+            CurrentAttack = BossAttack.None; State = BossState.Idle;
+            Paused = false; stunnedUntil = retreatRemaining = windup = repath = 0;
             if (visual)
                 foreach (var renderer in visual.GetComponentsInChildren<Renderer>())
                 {
@@ -74,7 +77,7 @@ namespace Codice.Bosses
         public void SetPaused(bool paused)
         {
             Paused = paused;
-            if (agent && agent.isOnNavMesh) agent.isStopped = paused;
+            if (agent && agent.isOnNavMesh) agent.isStopped = paused || State != BossState.Moving;
             foreach (var minion in minions) if (minion) minion.SetPaused(paused);
         }
         void Update()
@@ -82,21 +85,29 @@ namespace Codice.Bosses
             if (!IsAlive || Paused || Time.time < stunnedUntil || !Target || !Target.State.IsAlive)
             { if (agent.isOnNavMesh) agent.isStopped = true; return; }
             float dt = Time.deltaTime;
+            if (State == BossState.Stunned) { State = BossState.Recovery; attackTimer = .8f; }
             summonTimer -= dt;
             if (summonTimer <= 0) { Summon(); summonTimer = SummonInterval; }
             if (!agent.isOnNavMesh) return;
             agent.speed = (kind == BossKind.GoblinKing ? 2.4f : 3.6f) * SpeedMultiplier;
             Vector3 delta = Target.transform.position - transform.position; delta.y = 0;
-            if (CurrentAttack != BossAttack.None)
+            if (State == BossState.Windup)
             {
                 agent.isStopped = true; windup -= dt;
                 if (visual && !GetComponent<Codice.Presentation.ActorPresentation>()) visual.localRotation = rest * Quaternion.Euler(-20 * Mathf.Clamp01(windup), 0, 0);
                 if (windup <= 0)
                 {
-                    ExecuteAttack(); CurrentAttack = BossAttack.None;
+                    ExecuteAttack(); CurrentAttack = BossAttack.None; State = BossState.Recovery;
                     if (visual) visual.localRotation = rest;
                     attackTimer = kind == BossKind.GoblinKing ? 2.2f : Phase == 3 ? .65f : 1.5f;
                 }
+                return;
+            }
+            if (State == BossState.Recovery)
+            {
+                agent.isStopped = true;
+                attackTimer -= dt;
+                if (attackTimer <= 0) State = BossState.Idle;
                 return;
             }
             if (delta.sqrMagnitude > .01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(delta), 180 * dt);
@@ -109,18 +120,28 @@ namespace Codice.Bosses
                 CurrentAttack = kind == BossKind.GoblinKing ? (sequence % 2 == 0 ? BossAttack.Rock : BossAttack.Mud) : bow ? BossAttack.Bow : sequence % 2 == 0 ? BossAttack.Sweep : BossAttack.Slam;
                 if (bow) { retreatRemaining = .45f; retreatDirection = -delta.normalized; }
                 sequence++; aim = Target.transform.position + (CurrentAttack == BossAttack.Mud ? Vector3.zero : Vector3.up);
-                facing = transform.forward; windup = CurrentAttack == BossAttack.Slam ? 1.15f : .9f;
+                facing = delta.sqrMagnitude > .001f ? delta.normalized : transform.forward;
+                transform.rotation = Quaternion.LookRotation(facing);
+                windup = CurrentAttack == BossAttack.Slam ? 1.15f : .9f; State = BossState.Windup;
                 if (bowWeapon) bowWeapon.SetActive(bow);
                 if (meleeWeapon) meleeWeapon.SetActive(!bow);
                 GetComponent<Codice.Presentation.ActorPresentation>()?.Attack(CurrentAttack==BossAttack.Bow||CurrentAttack==BossAttack.Rock||CurrentAttack==BossAttack.Mud,windup);
                 agent.isStopped = true; Changed?.Invoke(this); return;
             }
             agent.isStopped = delta.magnitude <= range * .8f && HasLineOfSight(Target.transform.position + Vector3.up);
+            State = agent.isStopped ? BossState.Idle : BossState.Moving;
             if (!agent.isStopped && repath <= 0) { repath = .3f; agent.SetDestination(Target.transform.position); }
         }
         float retreatRemaining;
         float stunnedUntil;
-        public void ApplyStun(float seconds) { stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds); CurrentAttack = BossAttack.None; }
+        public void ApplyStun(float seconds)
+        {
+            if (!IsAlive || seconds <= 0 || float.IsNaN(seconds) || float.IsInfinity(seconds)) return;
+            stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds);
+            CurrentAttack = BossAttack.None; State = BossState.Stunned; windup = retreatRemaining = 0;
+            if (agent.isOnNavMesh) agent.isStopped = true;
+            if (visual) { var p = visual.localPosition; p.y = 0; visual.localPosition = p; visual.localRotation = rest; }
+        }
         Vector3 retreatDirection;
         void LateUpdate()
         {
@@ -202,6 +223,7 @@ namespace Codice.Bosses
             Changed?.Invoke(this);
             if (!IsAlive)
             {
+                State = BossState.Dead; CurrentAttack = BossAttack.None;
                 if (agent.isOnNavMesh) agent.isStopped = true;
                 agent.enabled = false;
                 foreach (var collider in GetComponentsInChildren<Collider>()) collider.enabled = false;

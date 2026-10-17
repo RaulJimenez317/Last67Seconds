@@ -34,12 +34,13 @@ namespace Codice.UI
             for(int i=0;i<3;i++){int slot=i;replaceButtons[i]=UIWidgets.Button(shopPanel,"Ranura "+(i+1),30+i*333,422,320,45,()=>{replacement=slot;});}
             shopMessage=UIWidgets.Label(shopPanel,"Transaction result",32,485,620,64,18,ProceduralUISprites.Gold);
             UIWidgets.Button(shopPanel,"CONTINUAR RONDA [Enter]",680,505,350,48,()=>{if(merchant)merchant.ContinueRound();});
-            pausePanel=Panel("Pause",-350,-250,700,500);Anchor(pausePanel,.5f,.5f);
+            pausePanel=Panel("Pause",-350,-290,700,580);Anchor(pausePanel,.5f,.5f);
             UIWidgets.Label(pausePanel,"Heading",35,30,630,60,40,ProceduralUISprites.Gold).text="ENTRE CENIZAS";
             UIWidgets.Label(pausePanel,"Pause subtitle",35,95,630,35,23).text="PAUSA  /  EL TIEMPO SE DETIENE";
             pauseClass=UIWidgets.Label(pausePanel,"Current class",35,152,630,180,21);
-            UIWidgets.Label(pausePanel,"Controls",35,330,630,60,18).text="WASD mover • Clic atacar • 1/2/Tab armas\nEspacio/Shift dash • Q/Clic derecho especial • E recoger";
+            UIWidgets.Label(pausePanel,"Controls",35,330,630,70,18).text="WASD mover • Clic atacar • 1/2/Tab armas • R recargar\nEspacio/Shift dash • Q especial • E interactuar\nT / Y / U activar pasivas (10 s / recarga 20 s)";
             UIWidgets.Button(pausePanel,"VOLVER A LA PARTIDA [Escape]",35,415,630,50,()=>SetPaused(false));
+            UIWidgets.Button(pausePanel,"IR AL MENÚ PRINCIPAL",35,490,630,50,RunNavigation.MainMenu);
             defeatPanel=Panel("Defeat",-350,-190,700,380);Anchor(defeatPanel,.5f,.5f);
             UIWidgets.Label(defeatPanel,"Heading",35,38,630,60,32,ProceduralUISprites.Crimson).text="LAS CENIZAS TE RECLAMAN";
             UIWidgets.Label(defeatPanel,"Description",35,125,630,85,22).text="Tu viaje termina aquí.\nRepite el nivel o regresa al menú principal.";
@@ -57,9 +58,11 @@ namespace Codice.UI
         public void SetPaused(bool paused)
         {
             if(Paused==paused)return;
+            // A click on Resume must not also fire a weapon in the same frame.
+            escapeFrame=Time.frameCount;
             Paused=paused;
             if(paused){previousTimeScale=Time.timeScale;Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
-            else{Time.timeScale=previousTimeScale;if(Player&&Player.State.IsAlive&&!Player.ControlsBlocked){Cursor.lockState=CursorLockMode.Locked;Cursor.visible=false;}}
+            else{Time.timeScale=previousTimeScale;if(Player&&Player.State.IsAlive&&!Player.ControlsBlocked&&!ResultsVisible&&!RunNavigation.Loading){Cursor.lockState=CursorLockMode.Locked;Cursor.visible=false;}}
         }
         public bool Purchase(int index)
         {
@@ -82,6 +85,7 @@ namespace Codice.UI
             {
                 selectedModal=activeModal;
                 if(activeModal)activeModal.GetComponentsInChildren<Button>().FirstOrDefault(b=>b.interactable)?.Select();
+                else if(UnityEngine.EventSystems.EventSystem.current)UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
             }
             if(Paused)
             {var s=Player.State;pauseClass.text=$"CLASE: {new[]{"Guerrero","Tanque","Arquero"}[(int)s.Class]}\nVida base {s.MaxHealth:0} • Velocidad actual {s.MoveSpeed:0.0}\n\nGuerrero 120 HP / 6.5 m/s\nTanque 180 HP / 4.8 m/s • Arquero 100 HP / 6.2 m/s";}

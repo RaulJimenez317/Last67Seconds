@@ -59,8 +59,10 @@ namespace Codice.Characters
         }
         void Update()
         {
+            if (Codice.UI.RunNavigation.Loading) return;
             if (!state.IsAlive || Time.timeScale == 0) return;
-            if (!ControlsBlocked) state.TickAmmunition(Time.deltaTime);
+            if (!ControlsBlocked && !(Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible))
+            { state.TickAmmunition(Time.deltaTime); state.TickPassives(Time.deltaTime); }
             var keys = Keyboard.current; var mouse = Mouse.current;
             if (keys == null || mouse == null || !view) return;
             if (merchant)
@@ -81,6 +83,9 @@ namespace Codice.Characters
             if (Cursor.lockState != CursorLockMode.Locked)
             { if (mouse.leftButton.wasPressedThisFrame) CaptureCursor(true); return; }
             if (ControlsBlocked) return;
+            if (keys.tKey.wasPressedThisFrame) TryActivatePassive(0);
+            if (keys.yKey.wasPressedThisFrame) TryActivatePassive(1);
+            if (keys.uKey.wasPressedThisFrame) TryActivatePassive(2);
             var delta = mouse.delta.ReadValue() * mouseSensitivity;
             transform.Rotate(0, delta.x, 0);
             pitch = Mathf.Clamp(pitch - delta.y, -85, 85);
@@ -108,6 +113,12 @@ namespace Codice.Characters
             dashEnds = Time.time + .3f;
             if (primaryReady) nextDash = Time.time + 1.5f; else secondDashReady = Time.time + 1.5f;
             return true;
+        }
+        public bool TryActivatePassive(int slot)
+        {
+            if (ControlsBlocked || IsStaggered || Time.timeScale == 0 ||
+                (Codice.UI.RunHUD.Instance && (Codice.UI.RunHUD.Instance.ResultsVisible || Codice.UI.RunHUD.Instance.Paused))) return false;
+            return state.ActivatePassive(slot);
         }
         public void ReceiveDamage(DamageInfo hit)
         {

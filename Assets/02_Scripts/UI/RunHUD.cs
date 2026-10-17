@@ -75,8 +75,8 @@ namespace Codice.UI
             }
             for(int i=0;i<3;i++)
             {
-                passiveFrames[i]=UIWidgets.Image(hotbar,"Passive "+i,i*83,25,77,79,ProceduralUISprites.Ink,"hex");
-                passiveLabels[i]=UIWidgets.Label(passiveFrames[i].transform,"Passive name",8,21,61,49,13);passiveLabels[i].alignment=TextAnchor.MiddleCenter;
+                passiveFrames[i]=UIWidgets.Image(hotbar,"Passive "+i,i*83,5,77,99,ProceduralUISprites.Ink,"hex");
+                passiveLabels[i]=UIWidgets.Label(passiveFrames[i].transform,"Passive name",5,8,67,84,12);passiveLabels[i].alignment=TextAnchor.MiddleCenter;
             }
             dash=UIWidgets.Label(hotbar,"Dash",0,116,260,48,17,ProceduralUISprites.Cyan);
             var medallion=UIWidgets.Image(hotbar,"Ultimate",750,8,110,110,ProceduralUISprites.Cyan,"diamond");
@@ -157,13 +157,15 @@ namespace Codice.UI
                 icons[i].enabled=w!=null;if(w!=null)icons[i].sprite=ProceduralUISprites.Weapon(w.kind);
                 slotLabels[i].text=w==null?$"[{i+1}]  VACÍO":$"[{i+1}] {UIWidgets.WeaponName(w.kind)}\nT{w.tier}  /  {w.Damage:0} DAÑO\n{w.AttacksPerSecond:0.00}/s  [Tab]";
             }
-            for(int i=0;i<3;i++){bool exists=i<state.PassiveCount;passiveLabels[i].text=exists?UIWidgets.Passive(state.GetPassive(i)):"—";passiveFrames[i].color=exists?ProceduralUISprites.Cyan:ProceduralUISprites.Ink;}
+            for(int i=0;i<3;i++){bool exists=i<state.PassiveCount;passiveLabels[i].text="["+new[]{"T","Y","U"}[i]+"]\n"+(exists?UIWidgets.Passive(state.GetPassive(i))+"\n"+(state.PassiveTime(i)>0?$"{state.PassiveTime(i):0}s":state.PassiveWait(i)>0?$"Espera {state.PassiveWait(i):0}s":"LISTA"):"—");passiveFrames[i].color=exists?ProceduralUISprites.Cyan:ProceduralUISprites.Ink;}
             float charge=mechanics?mechanics.Charge:0;UltimateMeter.fillAmount=charge/100;
             UltimateMeter.color=charge>=100?Color.Lerp(ProceduralUISprites.Cyan,ProceduralUISprites.Gold,(Mathf.Sin(Time.unscaledTime*6)+1)/2):ProceduralUISprites.Cyan;
             ultimateText.text=mechanics&&mechanics.UltimateActive?"ACTIVO":$"{charge:0}%\n[Q]";
             specialName.text=weapon==null?"":UIWidgets.Special(weapon.kind)+"\n[Q] / [Clic derecho]";
-            ammo.text=weapon!=null&&weapon.Capacity>0?$"MUNICIÓN   {weapon.ammunition} / {weapon.Capacity}"+(weapon.kind==WeaponKind.Musket?"  •  Recoge suministros":"  •  Regeneración "+(state.HasPassive(PassiveKind.Frenzy)?"1.125 s":"1.5 s")):"";
-            reload.fillAmount=weapon!=null&&weapon.kind==WeaponKind.Bow&&weapon.ammunition<weapon.Capacity?Mathf.Clamp01(weapon.reloadProgress/(state.HasPassive(PassiveKind.Frenzy)?1.125f:1.5f)):0;
+            ammo.text=weapon!=null&&weapon.Capacity>0?$"MUNICIÓN   {weapon.ammunition} / {weapon.Capacity}"+(weapon.kind==WeaponKind.Musket?$"  •  Reserva {weapon.reserveAmmunition}  [R]":"  •  Regeneración "+(state.HasPassive(PassiveKind.Frenzy)?"1.125 s":"1.5 s")):"";
+            var combat=Player.GetComponent<PlayerCombat>();
+            if(combat&&combat.IsReloading)ammo.text+="  •  RECARGANDO";
+            reload.fillAmount=combat&&combat.IsReloading?combat.ReloadFraction:weapon!=null&&weapon.kind==WeaponKind.Bow&&weapon.ammunition<weapon.Capacity?Mathf.Clamp01(weapon.reloadProgress/(state.HasPassive(PassiveKind.Frenzy)?1.125f:1.5f)):0;
             ammoReload.fillAmount=reload.fillAmount;
             crosshair.text=weapon==null?"·":weapon.kind==WeaponKind.Bow?"◇":weapon.kind==WeaponKind.Musket?"┼":weapon.Ranged?"○":"·";
             dash.text="DASH [Espacio / Shift]\n"+(Player.DashCooldown<=0?"◆ LISTO":$"◇ {Player.DashCooldown:0.0}s")+(state.HasPassive(PassiveKind.MercuryBoots)?(Player.SecondDashCooldown<=0?"   ◆ LISTO":$"   ◇ {Player.SecondDashCooldown:0.0}s"):"");

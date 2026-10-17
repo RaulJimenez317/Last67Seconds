@@ -17,6 +17,20 @@ namespace Codice.Characters
         Vector3 restPosition;
         Transform displayed;
         public int Combo => combo;
+        WeaponInstance reloading;
+        float reloadElapsed;
+        public const float ReloadSeconds = 2;
+        public bool IsReloading => reloading != null;
+        public float ReloadFraction => IsReloading ? reloadElapsed / ReloadSeconds : 0;
+        public bool TryReload()
+        {
+            var w = player.State.ActiveWeapon;
+            if (!player.State.IsAlive || player.ControlsBlocked || player.IsStaggered || Codice.UI.RunNavigation.Loading || Time.timeScale == 0 || IsReloading ||
+                (Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) ||
+                w == null || w.kind != WeaponKind.Musket || w.ammunition >= w.Capacity || w.reserveAmmunition <= 0) return false;
+            reloading = w; reloadElapsed = 0; return true;
+        }
+        void OnDisable() { reloading = null; reloadElapsed = 0; }
         public WeaponPickup CreatePickup(WeaponInstance weapon, Vector3 position)
         {
             var pickup = new GameObject("Dropped " + weapon.kind + " T" + weapon.tier).AddComponent<WeaponPickup>();
@@ -40,8 +54,23 @@ namespace Codice.Characters
         void Update()
         {
             var weapon = player.State.ActiveWeapon;
+            if (reloading != null)
+            {
+                if (!player.State.IsAlive || weapon != reloading) { reloading = null; reloadElapsed = 0; }
+                else if (!player.ControlsBlocked && !(Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible))
+                {
+                    reloadElapsed += Time.deltaTime;
+                    if (reloadElapsed >= ReloadSeconds)
+                    {
+                        int rounds = Mathf.Min(reloading.Capacity - reloading.ammunition, reloading.reserveAmmunition);
+                        reloading.ammunition += rounds; reloading.reserveAmmunition -= rounds;
+                        reloading = null; reloadElapsed = 0; player.State.NotifyChanged();
+                    }
+                }
+            }
             if (weapon == null) return;
             UpdateWeapon(weapon);
+            if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) TryReload();
             if (displayed && !GetComponent<Codice.Presentation.ActorPresentation>())
             {
                 float phase = Mathf.Clamp01((Time.time - lastAttack) / .25f);
@@ -66,10 +95,12 @@ namespace Codice.Characters
         }
         public bool TryAttack()
         {
+            if (Codice.UI.RunNavigation.Loading || Codice.UI.RunHUD.HandlesEscapeThisFrame) return false;
             if (Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) return false;
             var weapon = player.State.ActiveWeapon;
             if (!player.State.IsAlive || player.ControlsBlocked || player.IsStaggered || Time.timeScale == 0 || !player.view || weapon == null || Time.time < nextAttack) return false;
-            if (!player.State.ConsumeAmmo()) return false;
+            if (IsReloading) return false;
+            if (!player.State.ConsumeAmmo()) { TryReload(); return false; }
             if (Time.time - lastAttack > 1.2f) combo = 0;
             combo = combo % 3 + 1;
             lastAttack = Time.time; nextAttack = Time.time + 1 / (weapon.AttacksPerSecond * player.State.AttackSpeedMultiplier);
