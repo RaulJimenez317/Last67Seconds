@@ -18,6 +18,7 @@ namespace Codice.Enemies
         public float Health { get; private set; }
         public float MaxHealth { get; private set; }
         public bool IsAlive => Health > 0;
+        public bool IsStunned => stagger > 0;
         public bool GuardBroken { get; private set; }
         public bool Paused { get; private set; }
         public event Action<BasicEnemy> Died;
@@ -150,7 +151,9 @@ namespace Codice.Enemies
             if (kind == EnemyKind.Heavy && hit.breaksGuard)
             { GuardBroken = true; if (shield) shield.SetActive(false); stagger = 1.2f; attacking = false; }
             float damage = kind == EnemyKind.Heavy && !GuardBroken && front && !hit.ignoreGuard ? hit.amount * .2f : hit.amount;
+            float actual = Mathf.Min(Health, damage);
             Health = Mathf.Max(0, Health - damage);
+            CombatFeedback.Report(this, hit, actual, damage < hit.amount);
             if (hit.knockback > 0)
             { impulse = Vector3.ProjectOnPlane(hit.direction, Vector3.up).normalized * Mathf.Min(hit.knockback, 12); stagger = Mathf.Max(stagger, .25f); attacking = false; }
             if (IsAlive) return;

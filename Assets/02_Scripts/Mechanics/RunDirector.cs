@@ -18,6 +18,7 @@ namespace Codice.Mechanics
         public bool CombatActive => Phase == RunPhase.Combat;
         public PlayerCharacter Player => scene ? scene.player : null;
         public event Action Changed;
+        public event Action<string> Notice;
         RunScene scene;
         string snapshot;
         bool transition;
@@ -59,17 +60,18 @@ namespace Codice.Mechanics
             bool started = scene.IsArena ? scene.arena.BeginEncounter(Level) : scene.dungeon.BeginEncounter(Level, RoundRules.Roster(Level));
             if (!started) { SetPhase(RunPhase.Cleared); Debug.LogError("No se pudo iniciar la ronda " + Level, scene); return; }
             if (!scene.IsArena) SpawnLoot();
+            Notice?.Invoke("¡Ronda " + Level + " iniciada!");
             Debug.Log("Ronda " + Level + " iniciada.", scene);
         }
-        void OpenShop() { SetPhase(RunPhase.Shop); Debug.Log("Interludio: mercader en el centro. E para comprar; Enter en la tienda para continuar."); }
+        void OpenShop() { SetPhase(RunPhase.Shop); Notice?.Invoke("¡El Mercader Errante ha aparecido!"); Debug.Log("Interludio: mercader en el centro. E para comprar; Enter en la tienda para continuar."); }
         void CloseShop() { if (Phase == RunPhase.Shop) SetPhase(RunPhase.Combat); }
         void RoundCleared()
         {
             if (Phase != RunPhase.Combat || !Player || !Player.State.IsAlive) return;
-            if (RoundElapsed < 180) { Player.State.AddGold(100); Debug.Log("Bono de rapidez: +100 oro."); }
+            if (RoundElapsed < 180) { Player.State.AddGold(100); Notice?.Invoke("¡Bono de Rapidez +100 Oro!"); Debug.Log("Bono de rapidez: +100 oro."); }
             SetPhase(RunPhase.Cleared);
             if (scene.IsArena || RoundRules.IsBoss(Level + 1))
-            { scene.portal.SetAvailable(true); Debug.Log("Portal disponible: acércate y pulsa E para continuar."); }
+            { scene.portal.SetAvailable(true); Notice?.Invoke(scene.IsArena ? "¡Portal al Calabozo abierto!" : "¡Portal al Coliseo abierto!"); Debug.Log("Portal disponible: acércate y pulsa E para continuar."); }
             else StartCoroutine(NextDungeonRound());
         }
         IEnumerator NextDungeonRound()

@@ -189,7 +189,9 @@ namespace Codice.Bosses
         {
             if (!IsAlive || Paused || hit.amount <= 0 || float.IsNaN(hit.amount) || float.IsInfinity(hit.amount)) return;
             int previousPhase = Phase;
+            float actual = Mathf.Min(Health, hit.amount);
             Health = Mathf.Max(0, Health - hit.amount);
+            CombatFeedback.Report(this, hit, actual, false);
             if (hit.source && hit.source.GetComponentInParent<PlayerCharacter>())
             {
                 HitByPlayer?.Invoke(this);

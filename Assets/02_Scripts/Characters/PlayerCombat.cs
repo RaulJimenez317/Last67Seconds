@@ -95,7 +95,8 @@ namespace Codice.Characters
                 {
                     var shot = new GameObject("Player projectile").AddComponent<PlayerProjectile>();
                     shot.transform.position = origin;
-                    shot.Initialize(gameObject, forward, mechanics ? mechanics.RollBasicDamage(weapon) : weapon.Damage, hitMask);
+                    float damage = mechanics ? mechanics.RollBasicDamage(weapon) : weapon.Damage;
+                    shot.Initialize(gameObject, forward, damage, hitMask, damage > weapon.Damage * 1.5f);
                 }
             }
             else
@@ -121,9 +122,10 @@ namespace Codice.Characters
         void Hit(Collider collider, WeaponInstance weapon, Vector3 direction)
         {
             if (collider.transform.IsChildOf(transform)) return;
+            float damage = GetComponent<Codice.Mechanics.PlayerMechanics>()?.RollBasicDamage(weapon) ?? weapon.Damage;
             collider.GetComponentInParent<IDamageReceiver>()?.ReceiveDamage(new DamageInfo
             {
-                amount = GetComponent<Codice.Mechanics.PlayerMechanics>()?.RollBasicDamage(weapon) ?? weapon.Damage, direction = direction, source = gameObject, melee = !weapon.Ranged,
+                amount = damage, critical = damage > weapon.Damage * 1.5f, hasImpactPoint = true, impactPoint = collider.ClosestPoint(player.view.transform.position), direction = direction, source = gameObject, melee = !weapon.Ranged,
                 breaksGuard = weapon.kind == WeaponKind.Axe || weapon.kind == WeaponKind.Hammer,
                 knockback = weapon.kind == WeaponKind.Axe ? 5 : 0
             });

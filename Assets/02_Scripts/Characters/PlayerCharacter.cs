@@ -14,6 +14,8 @@ namespace Codice.Characters
         public LayerMask interactionMask = ~0;
         [SerializeField] CharacterState state = new CharacterState();
         public CharacterState State => state;
+        public float DashCooldown => Mathf.Max(0, nextDash - Time.time);
+        public float SecondDashCooldown => Mathf.Max(0, secondDashReady - Time.time);
         public bool IsDashing => Time.time < dashEnds;
         public bool ControlsBlocked { get; private set; }
         public event Action<Merchant> ShopOpened;
@@ -71,6 +73,7 @@ namespace Codice.Characters
                 }
                 return;
             }
+            if (Codice.UI.RunHUD.HandlesEscapeThisFrame) return;
             if (keys.escapeKey.wasPressedThisFrame) { CaptureCursor(false); return; }
             if (Cursor.lockState != CursorLockMode.Locked)
             { if (mouse.leftButton.wasPressedThisFrame) CaptureCursor(true); return; }

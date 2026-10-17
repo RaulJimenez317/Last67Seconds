@@ -57,7 +57,7 @@ namespace Codice.Bosses
         }
         void OnGUI()
         {
-            if (!player) return;
+            if (!player || Codice.UI.RunHUD.Instance) return;
             GUI.Box(new Rect(20, 20, 250, 55), $"Vida: {Mathf.CeilToInt(player.State.Health)} / {player.State.MaxHealth}\nColiseo — Nivel {level}");
             if (ActiveBoss)
                 GUI.Box(new Rect(Screen.width / 2f - 180, 20, 360, 55), $"{(ActiveBoss.kind == BossKind.GoblinKing ? "Rey Goblin" : "Señor Demonio")} — Fase {ActiveBoss.Phase}\n{Mathf.CeilToInt(ActiveBoss.Health)} / {ActiveBoss.MaxHealth} HP");

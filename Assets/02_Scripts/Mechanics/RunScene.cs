@@ -22,6 +22,7 @@ namespace Codice.Mechanics
         {
             yield return null;
             if (!RunDirector.Instance) new GameObject("Run director").AddComponent<RunDirector>();
+            Codice.UI.RunHUD.Install(this);
             RunDirector.Instance.Enter(this);
         }
     }

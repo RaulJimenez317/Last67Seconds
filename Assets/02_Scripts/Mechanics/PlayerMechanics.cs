@@ -12,6 +12,7 @@ namespace Codice.Mechanics
         public event Action Changed;
         public bool UltimateActive { get; private set; }
         public bool Invulnerable => Time.time < invulnerableUntil;
+        public bool ShieldActive => Time.time < shieldUntil && player.State.ActiveWeapon?.kind == WeaponKind.Shield;
         public bool ShadowStep => Time.time < shadowUntil;
         public float Charge => player.State.ActiveWeapon?.ultimateCharge ?? 0;
         PlayerCharacter player;
@@ -57,7 +58,7 @@ namespace Codice.Mechanics
         public void AfterDamage(DamageInfo hit)
         {
             if (hit.melee && !hit.secondary && hit.source && player.State.HasPassive(PassiveKind.ThornArmor))
-                hit.source.GetComponentInParent<IDamageReceiver>()?.ReceiveDamage(new DamageInfo { amount = 35, source = gameObject, direction = -hit.direction, secondary = true });
+                hit.source.GetComponentInParent<IDamageReceiver>()?.ReceiveDamage(new DamageInfo { amount = 35, source = gameObject, direction = -hit.direction, secondary = true, reflected = true });
         }
         public void RaiseShield() { shieldUntil = Time.time + .65f; }
         public float RollBasicDamage(WeaponInstance weapon)

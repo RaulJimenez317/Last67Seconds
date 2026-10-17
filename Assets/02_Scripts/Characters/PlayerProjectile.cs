@@ -9,8 +9,9 @@ namespace Codice.Characters
         Vector3 direction;
         float damage, expires;
         LayerMask mask;
-        public void Initialize(GameObject owner, Vector3 direction, float damage, LayerMask mask)
-        { this.owner = owner; this.direction = direction.normalized; this.damage = damage; this.mask = mask; expires = Time.time + 3; }
+        bool critical;
+        public void Initialize(GameObject owner, Vector3 direction, float damage, LayerMask mask, bool critical = false)
+        { this.critical = critical; this.owner = owner; this.direction = direction.normalized; this.damage = damage; this.mask = mask; expires = Time.time + 3; }
         void Update()
         {
             if (Time.time >= expires) { Destroy(gameObject); return; }
@@ -20,7 +21,7 @@ namespace Codice.Characters
             foreach (var hit in hits)
             {
                 if (owner && hit.transform.IsChildOf(owner.transform)) continue;
-                hit.collider.GetComponentInParent<IDamageReceiver>()?.ReceiveDamage(new DamageInfo { amount = damage, direction = direction, source = owner });
+                hit.collider.GetComponentInParent<IDamageReceiver>()?.ReceiveDamage(new DamageInfo { amount = damage, critical = critical, hasImpactPoint = true, impactPoint = hit.point, direction = direction, source = owner });
                 Destroy(gameObject); return;
             }
             transform.position += direction * distance;
