@@ -1,3 +1,5 @@
+using TMPro;
+using Text = TMPro.TextMeshProUGUI;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -17,8 +19,7 @@ namespace Codice.UI
             if(PlayerPrefs.HasKey("Codice.Fullscreen"))Screen.fullScreen=PlayerPrefs.GetInt("Codice.Fullscreen")==1;
             AudioListener.volume=PlayerPrefs.GetFloat("Codice.Volume",1);
             var root=new GameObject("Main menu canvas",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));root.transform.SetParent(transform,false);
-            root.GetComponent<Canvas>().renderMode=RenderMode.ScreenSpaceOverlay;
-            var scaler=root.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1920,1080);scaler.matchWidthOrHeight=.5f;
+            UIWidgets.ConfigureCanvas(root.GetComponent<Canvas>());
             if(!FindFirstObjectByType<EventSystem>())new GameObject("Menu input",typeof(EventSystem),typeof(InputSystemUIInputModule)).transform.SetParent(transform,false);
             var bg=UIWidgets.Image(root.transform,"Background",0,0,1920,1080,new Color(.035f,.043f,.065f)).rectTransform;bg.anchorMin=Vector2.zero;bg.anchorMax=Vector2.one;bg.offsetMin=bg.offsetMax=Vector2.zero;
             home=Centered(root.transform,"Main Menu",1680,900);
@@ -27,7 +28,7 @@ namespace Codice.UI
             Line(home,80,85,1520,new Color(.3f,.28f,.23f));
             Label(home,"Chapter",80,138,700,30,18,Muted,"ROGUELIKE  •  ACCIÓN EN PRIMERA PERSONA");
             var title=Label(home,"Title",74,225,850,130,72,Cream,"Last<color=#FFBA68>67</color>Seconds");
-            title.fontStyle=FontStyle.Bold;
+            title.fontStyle=FontStyles.Bold;
             Label(home,"Title detail",80,370,800,30,18,Gold,"CENIZA  /  ACERO  /  SUPERVIVENCIA");
             UIWidgets.Image(home,"Title accent",80,422,72,4,Gold);
             Label(home,"Subtitle",80,463,650,78,25,Muted,"Desciende a las ruinas. Reclama su poder.\nQue las cenizas cuenten tu historia.");
@@ -36,8 +37,8 @@ namespace Codice.UI
             Button(home,"SALIR",405,686,295,62,RunNavigation.Quit);
             var art=UIWidgets.Rect(home,"Relics",920,140,620,620).gameObject.AddComponent<RawImage>();
             art.gameObject.AddComponent<MenuRelics>().Initialize(art);
-            var caption=Label(home,"Relic caption",920,740,620,32,20,Gold,"RELIQUIAS DE LAS CENIZAS");caption.alignment=TextAnchor.MiddleCenter;
-            var sub=Label(home,"Relic hint",920,782,620,30,17,Muted,"Recoge sus sellos. Despierta su poder con T / Y / U.");sub.alignment=TextAnchor.MiddleCenter;
+            var caption=Label(home,"Relic caption",920,740,620,32,20,Gold,"RELIQUIAS DE LAS CENIZAS");caption.alignment=TextAlignmentOptions.Center;
+            var sub=Label(home,"Relic hint",920,782,620,30,17,Muted,"Recoge sus sellos. Despierta su poder con T / Y / U.");sub.alignment=TextAlignmentOptions.Center;
             Line(home,80,835,1520,new Color(.3f,.28f,.23f));
             Label(home,"Footer",80,863,1000,28,17,Muted,"WASD  Mover     •     Clic  Atacar     •     E  Interactuar     •     Esc  Pausa");
             Label(home,"Navigation",1220,863,400,28,17,Gold,"↑ ↓  Elegir     /     Enter  Confirmar");
@@ -87,7 +88,7 @@ namespace Codice.UI
             var face=rect.gameObject.AddComponent<RelicButtonFace>();face.primary=primary;face.raycastTarget=true;
             var b=rect.gameObject.AddComponent<RelicMenuButton>();b.targetGraphic=face;b.onClick.AddListener(action);
             b.transition=Selectable.Transition.None;
-            var label=Label(rect,"Label",66,0,w-112,h,w<350?18:21,Cream,name);label.alignment=TextAnchor.MiddleLeft;label.fontStyle=FontStyle.Bold;
+            var label=Label(rect,"Label",66,0,w-112,h,w<350?18:21,Cream,name);label.alignment=TextAlignmentOptions.MidlineLeft;label.fontStyle=FontStyles.Bold;
             return b;
         }
         void Update()

@@ -1,3 +1,5 @@
+using TMPro;
+using Text = TMPro.TextMeshProUGUI;
 using System.Collections.Generic;
 using Codice.Characters;
 using Codice.Enemies;
@@ -21,7 +23,7 @@ namespace Codice.UI
         {
             tooltip=Panel("Pickup comparison",0,0,630,205);tooltipText=UIWidgets.Label(tooltip,"Details",18,14,594,180,19);
             equippedComparison=UIWidgets.Label(tooltip,"Equipped comparison",18,14,285,150,19);groundComparison=UIWidgets.Label(tooltip,"Ground comparison",327,14,285,150,19);tooltip.gameObject.SetActive(false);
-            for(int i=0;i<3;i++){waypoints[i]=UIWidgets.Label(transform,"Waypoint "+i,0,0,240,45,18,ProceduralUISprites.Gold);waypoints[i].alignment=TextAnchor.MiddleCenter;}
+            for(int i=0;i<3;i++){waypoints[i]=UIWidgets.Label(transform,"Waypoint "+i,0,0,240,45,18,ProceduralUISprites.Gold);waypoints[i].alignment=TextAlignmentOptions.Center;}
         }
         public string DescribePickup(Component item)
         {
@@ -69,8 +71,8 @@ namespace Codice.UI
             for(int i=0;i<waypoints.Length;i++)waypoints[i].enabled=false;
             if(!overlay)
             {
-                if(Context.dungeon&&Context.dungeon.merchant&&Context.dungeon.merchant.Available)Waypoint(0,Context.dungeon.merchant.transform.position,"◆ MERCADER",camera);
-                if(Context.portal&&Context.portal.Available)Waypoint(1,Context.portal.transform.position,"◇ PORTAL",camera);
+                if(Context.dungeon&&Context.dungeon.merchant&&Context.dungeon.merchant.Available)Waypoint(0,Context.dungeon.merchant.transform.position,"• MERCADER",camera);
+                if(Context.portal&&Context.portal.Available)Waypoint(1,Context.portal.transform.position,"○ PORTAL",camera);
                 var active=Player.State.ActiveWeapon;
                 if(active!=null&&active.Capacity>0&&active.ammunition<=active.Capacity/3)
                 {LootPickup nearest=null;float best=float.MaxValue;foreach(var p in loot)if(p&&p.Available&&p.kind==LootKind.Ammunition){float d=(p.transform.position-Player.transform.position).sqrMagnitude;if(d<best){best=d;nearest=p;}}if(nearest)Waypoint(2,nearest.transform.position,"↑ MUNICIÓN",camera);}
@@ -96,7 +98,7 @@ namespace Codice.UI
             if(screen.z<=0){screen.x=Screen.width-screen.x;screen.y=Screen.height-screen.y;}
             screen.x=Mathf.Clamp(screen.x,125,Screen.width-125);screen.y=Mathf.Clamp(screen.y,190,Screen.height-225);
             Vector2 direction=new Vector2(screen.x-Screen.width*.5f,screen.y-Screen.height*.5f);
-            string arrow=Mathf.Abs(direction.y)>Mathf.Abs(direction.x)?(direction.y>0?"▲ ":"▼ "):(direction.x<0?"◀ ":"▶ ");
+            string arrow=Mathf.Abs(direction.y)>Mathf.Abs(direction.x)?(direction.y>0?"▲ ":"▼ "):(direction.x<0?"← ":"→ ");
             waypoints[index].enabled=true;waypoints[index].text=(off?arrow:"")+name+$"  {Vector3.Distance(Player.transform.position,position):0}m";
             PositionOnScreen(waypoints[index].rectTransform,screen,new Vector2(-120,0));
         }
@@ -104,7 +106,7 @@ namespace Codice.UI
         void SpawnNumber(Vector3 position,string value,Color color,bool self)
         {
             if(numbers.Count>=48){Destroy(numbers[0].label.gameObject);numbers.RemoveAt(0);}
-            var label=UIWidgets.Label(transform,"Combat number",0,0,180,55,27,color);label.text=value;label.alignment=TextAnchor.MiddleCenter;
+            var label=UIWidgets.Label(transform,"Combat number",0,0,180,55,27,color);label.text=value;label.alignment=TextAlignmentOptions.Center;
             numbers.Add(new FloatingNumber{label=label,position=position,born=Time.unscaledTime,self=self});
         }
     }
@@ -119,14 +121,14 @@ namespace Codice.UI
             bar.canvas=root.AddComponent<Canvas>();bar.canvas.renderMode=RenderMode.WorldSpace;
             ((RectTransform)root.transform).sizeDelta=new Vector2(200,65);root.transform.localScale=Vector3.one*.012f;
             bar.health=GhostBar.Create(root.transform,"Integrity",0,28,200,24);
-            bar.status=UIWidgets.Label(root.transform,"Status",0,0,200,26,19,ProceduralUISprites.Gold);bar.status.alignment=TextAnchor.MiddleCenter;
+            bar.status=UIWidgets.Label(root.transform,"Status",0,0,200,26,19,ProceduralUISprites.Gold);bar.status.alignment=TextAlignmentOptions.Center;
             bar.shieldIcon=UIWidgets.Image(root.transform,"Guard icon",-27,25,24,28,ProceduralUISprites.Gold);bar.shieldIcon.sprite=ProceduralUISprites.Weapon(WeaponKind.Shield);return bar;
         }
         public void Refresh(Camera camera)
         {
             if(!target){Destroy(gameObject);return;}
             float hp,max;string label="";
-            if(target is BasicEnemy enemy){hp=enemy.Health;max=enemy.MaxHealth;label=enemy.IsStunned?"✦ ATURDIDO":enemy.kind==EnemyKind.Heavy?(enemy.GuardBroken?"◇ ESCUDO ROTO":"◆ ESCUDO"):"";}
+            if(target is BasicEnemy enemy){hp=enemy.Health;max=enemy.MaxHealth;label=enemy.IsStunned?"* ATURDIDO":enemy.kind==EnemyKind.Heavy?(enemy.GuardBroken?"○ ESCUDO ROTO":"• ESCUDO"):"";}
             else if(target is DestructiblePillar pillar){hp=pillar.Health;max=pillar.maxHealth;label="PILAR";}else return;
             var collider=target.GetComponent<Collider>();Vector3 position=collider?new Vector3(collider.bounds.center.x,collider.bounds.max.y+.35f,collider.bounds.center.z):target.transform.position+Vector3.up*2.5f;
             transform.position=position;transform.rotation=camera.transform.rotation;

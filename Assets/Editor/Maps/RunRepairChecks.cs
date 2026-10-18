@@ -135,7 +135,7 @@ public static class RunRepairChecks
             Application.runInBackground=true;
             await Until(()=>Object.FindFirstObjectByType<MainMenuUI>(),"main menu");
             await Task.Delay(500);
-            Check(GameObject.Find("Main Menu/Test round")!=null||Object.FindObjectsByType<UnityEngine.UI.Text>(FindObjectsSortMode.None).Any(t=>t.name=="Test round"&&t.gameObject.activeInHierarchy),"round selector visible on home");
+            Check(GameObject.Find("Main Menu/Test round")!=null||Object.FindObjectsByType<TMPro.TextMeshProUGUI>(FindObjectsSortMode.None).Any(t=>t.name=="Test round"&&t.gameObject.activeInHierarchy),"round selector visible on home");
             RunNavigation.StartGame(PlayerClass.Warrior,1);
             for(int round=1;round<=20;round++)
             {
@@ -148,7 +148,7 @@ public static class RunRepairChecks
                 {
                     var boss=context.arena.ActiveBoss;Check(boss&&boss.IsAlive,"boss spawned round "+round);
                     await Task.Delay(150);
-                    Check(Object.FindObjectsByType<UnityEngine.UI.Text>(FindObjectsSortMode.None).Any(t=>t.name=="JEFE"&&t.gameObject.activeInHierarchy),"boss announcement round "+round);
+                    Check(Object.FindObjectsByType<TMPro.TextMeshProUGUI>(FindObjectsSortMode.None).Any(t=>t.name=="JEFE"&&t.gameObject.activeInHierarchy),"boss announcement round "+round);
                     boss.ReceiveDamage(new DamageInfo{amount=999999,source=run.Player.gameObject});
                 }
                 else

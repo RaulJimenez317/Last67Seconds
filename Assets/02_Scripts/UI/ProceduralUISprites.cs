@@ -13,7 +13,7 @@ namespace Codice.UI
         public static Sprite Shape(string kind)
         {
             if (cache.TryGetValue(kind, out var saved) && saved) return saved;
-            const int n = 128;
+            const int n = 256;
             var texture = new Texture2D(n, n, TextureFormat.RGBA32, false) { name = "UI procedural " + kind, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.DontSave };
             var pixels = new Color[n * n];
             for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
@@ -30,19 +30,19 @@ namespace Codice.UI
                 pixels[y*n+x] = c;
             }
             texture.SetPixels(pixels); texture.Apply();
-            var sprite = Sprite.Create(texture, new Rect(0,0,n,n), new Vector2(.5f,.5f), 100, 0, SpriteMeshType.FullRect, kind == "frame" ? new Vector4(18,18,18,18) : Vector4.zero); sprite.name = kind; sprite.hideFlags = HideFlags.DontSave;
+            var sprite = Sprite.Create(texture, new Rect(0,0,n,n), new Vector2(.5f,.5f), 200, 0, SpriteMeshType.FullRect, kind == "frame" ? new Vector4(36,36,36,36) : Vector4.zero); sprite.name = kind; sprite.hideFlags = HideFlags.DontSave;
             cache[kind] = sprite; return sprite;
         }
         public static Sprite Weapon(WeaponKind kind)
         {
             string key = "weapon" + kind;
             if (cache.TryGetValue(key, out var saved) && saved) return saved;
-            const int n = 64; var pixels = new Color[n*n];
+            const int n = 256; var pixels = new Color[n*n];
             void Line(float ax,float ay,float bx,float by,float width)
             {
                 var a = new Vector2(ax,ay); var b = new Vector2(bx,by); var d=b-a;
                 for(int y=0;y<n;y++) for(int x=0;x<n;x++)
-                { var p = new Vector2(x,y); float t=Mathf.Clamp01(Vector2.Dot(p-a,d)/Mathf.Max(.01f,d.sqrMagnitude)); if(Vector2.Distance(p,a+d*t)<width) pixels[y*n+x]=Color.white; }
+                { var p = new Vector2((x+.5f)*64/n,(y+.5f)*64/n); float t=Mathf.Clamp01(Vector2.Dot(p-a,d)/Mathf.Max(.01f,d.sqrMagnitude)); float alpha=Mathf.Clamp01((width-Vector2.Distance(p,a+d*t))*4+.5f); if(alpha>pixels[y*n+x].a) pixels[y*n+x]=new Color(1,1,1,alpha); }
             }
             if(kind == WeaponKind.Bow) { for(int i=0;i<24;i++){float a=-1.25f+i*.1f,b=a+.1f;Line(24+23*Mathf.Cos(a),32+25*Mathf.Sin(a),24+23*Mathf.Cos(b),32+25*Mathf.Sin(b),2);} Line(31,8,31,56,1);Line(15,32,53,32,1.5f); }
             else if(kind == WeaponKind.Shield) {Line(12,49,32,57,3);Line(32,57,52,49,3);Line(12,49,17,23,4);Line(52,49,47,23,4);Line(17,23,32,8,4);Line(47,23,32,8,4);Line(32,15,32,49,3);}

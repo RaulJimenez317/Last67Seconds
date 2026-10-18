@@ -1,3 +1,5 @@
+using TMPro;
+using Text = TMPro.TextMeshProUGUI;
 using Codice.Mechanics;
 using Codice.Presentation;
 using UnityEngine;
@@ -25,10 +27,10 @@ namespace Codice.UI
                     bossAnnouncementFade.blocksRaycasts=false;bossAnnouncementFade.interactable=false;
                     UIWidgets.Image(bossAnnouncement,"Gold line",110,12,900,3,ProceduralUISprites.Gold);
                     bossAnnouncementTitle=UIWidgets.Label(bossAnnouncement,"JEFE",20,22,1080,100,84,ProceduralUISprites.Gold);
-                    bossAnnouncementTitle.alignment=TextAnchor.MiddleCenter;bossAnnouncementTitle.fontStyle=FontStyle.Bold;
-                    bossAnnouncementTitle.resizeTextForBestFit=true;bossAnnouncementTitle.resizeTextMinSize=36;bossAnnouncementTitle.resizeTextMaxSize=74;
+                    bossAnnouncementTitle.alignment=TextAlignmentOptions.Center;bossAnnouncementTitle.fontStyle=FontStyles.Bold;
+                    bossAnnouncementTitle.enableAutoSizing=true;bossAnnouncementTitle.fontSizeMin=36;bossAnnouncementTitle.fontSizeMax=74;
                     bossAnnouncementDetail=UIWidgets.Label(bossAnnouncement,"Boss details",20,128,1080,64,25,Color.white);
-                    bossAnnouncementDetail.alignment=TextAnchor.MiddleCenter;
+                    bossAnnouncementDetail.alignment=TextAlignmentOptions.Center;
                     UIWidgets.Image(bossAnnouncement,"Gold line bottom",110,205,900,3,ProceduralUISprites.Gold);
                 }
                 bossAnnouncementTitle.text=BossName(Context.arena.ActiveBoss.kind);
