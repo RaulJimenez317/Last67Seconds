@@ -48,6 +48,8 @@ namespace Codice.Bosses
         void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
+            // Goblin facing is controlled by the player target, not the path steering.
+            if (kind == BossKind.GoblinKing) agent.updateRotation = false;
             Codice.Presentation.ActorPresentation.Install(gameObject);
             if (!visual) return;
             rest = visual.localRotation;
@@ -59,7 +61,13 @@ namespace Codice.Bosses
         }
         public void Initialize(PlayerCharacter player, int level)
         {
-            Target = player; Level = Mathf.Max(1, level); Evolved = Level >= 15;
+            Target = player;
+            if (kind == BossKind.GoblinKing && Target)
+            {
+                Vector3 direction = Vector3.ProjectOnPlane(Target.transform.position - transform.position, Vector3.up);
+                if (direction.sqrMagnitude > .001f) transform.rotation = Quaternion.LookRotation(direction);
+            }
+            Level = Mathf.Max(1, level); Evolved = Level >= 15;
             MaxHealth = baseHealth * (Evolved ? 1.5f : 1); Health = MaxHealth;
             summonTimer = SummonInterval; attackTimer = 2; healthSummons = sequence = 0;
             CurrentAttack = BossAttack.None; State = BossState.Idle;
@@ -91,6 +99,8 @@ namespace Codice.Bosses
             if (!agent.isOnNavMesh) return;
             agent.speed = (kind == BossKind.GoblinKing ? 2.4f : 3.6f) * SpeedMultiplier;
             Vector3 delta = Target.transform.position - transform.position; delta.y = 0;
+            if (kind == BossKind.GoblinKing && delta.sqrMagnitude > .001f)
+                transform.rotation = Quaternion.LookRotation(delta);
             if (State == BossState.Windup)
             {
                 agent.isStopped = true; windup -= dt;

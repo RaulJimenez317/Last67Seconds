@@ -13,7 +13,7 @@ namespace Codice.Presentation
     {
         public AudioClip menu, dungeon, arena;
         [Tooltip("Gain for all background music; does not change effects or the saved master volume.")]
-        [Range(0,1)] public float musicVolume = .85f;
+        [Range(0,1)] public float musicVolume = .595f;
         public SoundEntry[] effects;
     }
 }
