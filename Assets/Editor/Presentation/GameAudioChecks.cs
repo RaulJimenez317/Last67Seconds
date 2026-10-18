@@ -26,8 +26,10 @@ public static class GameAudioChecks
             Check(library.menu&&library.dungeon&&library.arena&&library.menu!=library.dungeon&&library.dungeon!=library.arena,"Three distinct tracks");
             Check(library.effects.Length==Enum.GetValues(typeof(SoundCue)).Length&&library.effects.All(e=>e.clips.Length>0&&e.clips.All(c=>c)),"All cues have clips");
             Check(audio.CurrentMusic==library.menu,"Menu selects menu music");
+            Check(Mathf.Abs(library.musicVolume-.85f)<.001f,"Background music reduced 15 percent");
             await Task.Delay(1000);
             Check(audio.GetComponentsInChildren<AudioSource>().Any(s=>s.clip==library.menu&&s.isPlaying&&s.loop&&s.volume>0),"Menu music playing in loop");
+            Check(audio.GetComponentsInChildren<AudioSource>().Any(s=>s.clip==library.menu&&Mathf.Abs(s.volume-.32f*.85f)<.005f),"Music gain applies to source without changing master");
             int before=audio.PlayedCount;
             Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None).Single(b=>b.name=="INICIAR JUEGO").onClick.Invoke();
             Check(audio.PlayedCount==before+1&&audio.LastCue==SoundCue.Click,"Button click plays sound");

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 using Codice.Enemies;
 using UnityEngine;
 
@@ -7,23 +7,50 @@ namespace Codice.Mechanics
     public static class RoundRules
     {
         public static bool IsBoss(int round) => round >= 5 && round % 5 == 0;
+
+        // Total per normal wave, not the simultaneous population controlled by the encounter.
+        public static int EnemyLimit(int round)
+        {
+            if (round < 1 || IsBoss(round)) return 0;
+            return (int)Math.Min(int.MaxValue, (((long)round - 1) / 10 + 1) * 10);
+        }
+
+        // Keep the introductory five/eight enemies, then use the current block's ceiling.
+        public static int EnemyCount(int round) => round == 1 ? 5 : round == 2 ? 8 : EnemyLimit(round);
+
+        // x=swordsman, y=crossbowman, z=mage, w=heavy. Boss summons use their own rules.
+        public static Vector4 SpawnProbabilities(int round)
+        {
+            if (round < 1 || IsBoss(round)) return Vector4.zero;
+            if (round < 6) return new Vector4(1, 0, 0, 0);
+            float mage = round < 11 ? 0 : .15f + .25f * (1 - Mathf.Exp(-(round - 11) / 30f));
+            float heavy = round < 16 ? 0 : .10f + .40f * (1 - Mathf.Exp(-(round - 16) / 30f));
+            float weak = 1 - mage - heavy;
+            return new Vector4(weak * .65f, weak * .35f, mage, heavy);
+        }
+
+        public static EnemyKind SelectEnemy(Vector4 probabilities, float sample)
+        {
+            float cumulative = 0;
+            EnemyKind lastEligible = EnemyKind.Swordsman;
+            for (int i = 0; i < 4; i++)
+            {
+                if (probabilities[i] <= 0) continue;
+                lastEligible = (EnemyKind)i;
+                cumulative += probabilities[i];
+                if (sample < cumulative) return lastEligible;
+            }
+            // Random.value can return exactly 1. Never fall through to a locked archetype.
+            return lastEligible;
+        }
+
         public static EnemyKind[] Roster(int round)
         {
-            if (round < 1 || IsBoss(round)) return new EnemyKind[0];
-            int[] counts = round == 1 ? new[] { 3, 2, 0, 0 } : round == 2 ? new[] { 4, 2, 2, 0 } : round == 3 ? new[] { 5, 3, 3, 1 } : round == 4 ? new[] { 6, 4, 4, 2 } : null;
-            if (counts == null)
-            {
-                int[] totals = { 20, 25, 30, 36, 42, 48, 55, 62, 70, 78, 86, 95 };
-                int index = (round / 5 - 1) * 4 + round % 5 - 1;
-                int total = index < totals.Length ? totals[index] : 95 + (index - 11) * 10;
-                counts = new[] { 0, total / 4, total / 4, Mathf.Max(1, total / 8) };
-                counts[0] = total - counts[1] - counts[2] - counts[3];
-            }
-            var result = new List<EnemyKind>();
-            // Interleave archetypes so both halves contain a representative mixture.
-            while (counts[0] + counts[1] + counts[2] + counts[3] > 0)
-                for (int i = 0; i < 4; i++) if (counts[i] > 0) { result.Add((EnemyKind)i); counts[i]--; }
-            return result.ToArray();
+            var result = new EnemyKind[EnemyCount(round)];
+            var probabilities = SpawnProbabilities(round);
+            for (int i = 0; i < result.Length; i++)
+                result[i] = SelectEnemy(probabilities, UnityEngine.Random.value);
+            return result;
         }
     }
 }

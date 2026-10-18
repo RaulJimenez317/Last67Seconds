@@ -60,6 +60,7 @@ namespace Codice.Presentation
                 for(int i=0;i<voices.Length;i++)if(!interfaceVoice[i]){if(paused)voices[i].Pause();else voices[i].UnPause();}
             }
             float target=paused?.12f:director&&(director.Phase==RunPhase.Defeated||director.Phase==RunPhase.Cleared)?.18f:.32f;
+            target *= Library.musicVolume;
             for(int i=0;i<2;i++){music[i].volume=Mathf.MoveTowards(music[i].volume,i==activeMusic?target:0,Time.unscaledDeltaTime*.4f);if(i!=activeMusic&&music[i].volume==0)music[i].Stop();}
             var run=RunDirector.Instance;
             if(director!=run){director=run;lastPhase=RunPhase.Combat;}

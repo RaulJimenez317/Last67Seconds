@@ -15,6 +15,7 @@ MonoBehaviour:
   menu: {fileID: 8300000, guid: 7fba12e194ff375478f3ee73b290f911, type: 3}
   dungeon: {fileID: 8300000, guid: dcd9844ab8d49f44c865b50fffcdf5cb, type: 3}
   arena: {fileID: 8300000, guid: 0d8c8d29f2bc1a545b42c4d72190076d, type: 3}
+  musicVolume: 0.85
   effects:
   - cue: 0
     clips:

@@ -32,10 +32,10 @@ public static class MechanicsChecks
     {
         count = 0;
         int[] rounds = { 1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19 };
-        int[] totals = { 5, 8, 12, 16, 20, 25, 30, 36, 42, 48, 55, 62, 70, 78, 86, 95 };
+        int[] totals = { 5, 8, 10, 10, 10, 10, 10, 10, 20, 20, 20, 20, 20, 20, 20, 20 };
         for (int i = 0; i < rounds.Length; i++) Check(RoundRules.Roster(rounds[i]).Length == totals[i], "roster " + rounds[i]);
         Check(RoundRules.Roster(5).Length == 0 && RoundRules.IsBoss(20), "boss levels exclude dungeon");
-        Check(RoundRules.Roster(3).Count(k => k == EnemyKind.Heavy) == 1, "round three heavy");
+        Check(RoundRules.Roster(3).All(k => k == EnemyKind.Swordsman), "round three only swordsmen");
         var state = new CharacterState(); state.Initialize(PlayerClass.Archer);
         state.ConsumeAmmo(); state.EquipPassive(PassiveKind.Frenzy); state.ActivatePassive(0); state.TickAmmunition(1.125f);
         Check(state.ActiveWeapon.ammunition == 8, "frenzy arrow regeneration");
@@ -196,7 +196,7 @@ public static class MechanicsChecks
         Check(director.Travel(), "return travel");
         await WaitFor(() => director.Player && SceneManager.GetActiveScene().name == "Calabozo" && director.Level == 6 && director.Phase == RunPhase.Combat);
         foreach (var enemy in Object.FindObjectsByType<BasicEnemy>(FindObjectsSortMode.None)) enemy.SetPaused(true);
-        Check(Object.FindFirstObjectByType<BasicEnemyEncounter>().Total == 20, "round six roster");
+        Check(Object.FindFirstObjectByType<BasicEnemyEncounter>().Total == 10, "round six roster");
         Check(director.Player.State.Gold == gold + 400, "boss reward and one speed bonus");
         director.Player.State.Damage(10000);
         Check(director.Phase == RunPhase.Defeated && director.RestartRun() && !director.RestartRun(), "defeat and duplicate restart guard");
