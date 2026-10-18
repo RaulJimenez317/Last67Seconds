@@ -48,8 +48,8 @@ namespace Codice.Bosses
         void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
-            // Goblin facing is controlled by the player target, not the path steering.
-            if (kind == BossKind.GoblinKing) agent.updateRotation = false;
+            // Combat controls facing for both bosses, including the demon's retreat.
+            agent.updateRotation = false;
             Codice.Presentation.ActorPresentation.Install(gameObject);
             if (!visual) return;
             rest = visual.localRotation;
@@ -62,7 +62,7 @@ namespace Codice.Bosses
         public void Initialize(PlayerCharacter player, int level)
         {
             Target = player;
-            if (kind == BossKind.GoblinKing && Target)
+            if (Target)
             {
                 Vector3 direction = Vector3.ProjectOnPlane(Target.transform.position - transform.position, Vector3.up);
                 if (direction.sqrMagnitude > .001f) transform.rotation = Quaternion.LookRotation(direction);

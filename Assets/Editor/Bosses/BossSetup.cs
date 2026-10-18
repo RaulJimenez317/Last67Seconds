@@ -40,7 +40,7 @@ public static class BossSetup
             boss.goldReward = i == 0 ? 300 : 450; boss.baseMaterial = normal; boss.evolvedMaterial = evolved;
             boss.rockMaterial = rock; boss.mudMaterial = mud; boss.fireMaterial = fire; boss.summons = enemies;
             var pivot = new GameObject("Visual").transform; pivot.SetParent(root.transform, false); boss.visual = pivot;
-            if (i == 0) pivot.localRotation = Quaternion.Euler(0, 180, 0);
+            pivot.localRotation = Quaternion.Euler(0, 180, 0);
             var model = UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(Pack + "Exports/FBX (Unity)/" + modelName + ".fbx"), pivot);
             model.transform.localPosition = Vector3.zero; model.transform.localRotation = Quaternion.identity;
             var renderers = model.GetComponentsInChildren<Renderer>();
