@@ -10,8 +10,7 @@ namespace Codice.UI
     public sealed class MainMenuUI : MonoBehaviour
     {
         RectTransform home,options,classes;
-        Text values,displayMode,testRoundLabel;
-        int testRound=1;
+        Text values,displayMode;
         static readonly Color Gold=new Color(.88f,.71f,.43f), Cream=new Color(.95f,.92f,.85f), Muted=new Color(.57f,.61f,.66f);
         void Start()
         {
@@ -57,10 +56,6 @@ namespace Codice.UI
             Label(classes,"Chapter",80,35,1520,35,18,Gold,"LAST67SECONDS  /  NUEVO DESCENSO");
             Label(classes,"Title",75,115,1520,90,60,Cream,"Elige quién desafía las cenizas.");
             Label(classes,"Hint",80,220,1520,55,24,Muted,"Cada clase empieza con su propia arma. Podrás encontrar y comprar otras durante la partida.");
-            testRoundLabel=Label(home,"Test round",80,770,435,48,18,Gold,"");
-            UIWidgets.Button(home,"−",530,770,75,48,()=>SetTestRound(testRound-1));
-            UIWidgets.Button(home,"+",620,770,75,48,()=>SetTestRound(testRound+1));
-            SetTestRound(1);
             string[] names={"CABALLERO","ARQUERO","TANQUE"};
             string[] stats={"120 VIDA   /   VELOCIDAD 6.5\n\nEspada • Daño equilibrado\nClic izquierdo: atacar\nMantén clic derecho: escudo\nBloquea el 50% del daño frontal.","100 VIDA   /   VELOCIDAD 8\n\nArco • Alto daño por flecha\nClic izquierdo: disparar\nCada disparo consume munición.\nLas flechas se regeneran." ,"180 VIDA   /   VELOCIDAD 4.8\n\nMazo • Golpe en área frontal\nClic izquierdo: atacar\nGolpea a varios enemigos cercanos.\nMás resistencia, menos movilidad."};
             var kinds=new[]{Codice.Characters.PlayerClass.Warrior,Codice.Characters.PlayerClass.Archer,Codice.Characters.PlayerClass.Tank};
@@ -70,7 +65,7 @@ namespace Codice.UI
                 var card=UIWidgets.Image(classes,names[i]+" card",x,320,490,385,new Color(.07f,.085f,.12f));
                 Label(card.transform,"Name",25,25,440,50,32,Gold,names[i]);
                 Label(card.transform,"Stats",25,100,440,260,23,Cream,stats[i]);
-                Button(classes,"JUGAR COMO "+names[i],x,730,490,65,()=>RunNavigation.StartGame(kinds[index],testRound),true);
+                Button(classes,"JUGAR COMO "+names[i],x,730,490,65,()=>RunNavigation.StartGame(kinds[index]),true);
             }
             Button(classes,"VOLVER",80,825,260,55,()=>ShowClasses(false));
             Label(classes,"Controls",385,827,1200,50,20,Muted,"WASD: moverte   •   E: interactuar   •   Q: especial   •   T / Y / U: pasivas");
@@ -97,8 +92,7 @@ namespace Codice.UI
             if(options && options.gameObject.activeSelf && Keyboard.current!=null && Keyboard.current.escapeKey.wasPressedThisFrame)ShowOptions(false);
             if(displayMode)displayMode.text=Screen.fullScreen?"PANTALLA COMPLETA  •  CAMBIAR":"MODO VENTANA  •  CAMBIAR";
         }
-        void ShowClasses(bool show){home.gameObject.SetActive(!show);classes.gameObject.SetActive(show);SetTestRound(testRound);(show?classes:home).GetComponentInChildren<Button>().Select();}
-        void SetTestRound(int round){testRound=Mathf.Clamp(round,1,Codice.Mechanics.RoundRules.FinalRound);if(testRoundLabel)testRoundLabel.text=$"RONDA DE PRUEBA: {testRound:00}   •   {Codice.Mechanics.RoundRules.SceneForRound(testRound).ToUpperInvariant()}";}
+        void ShowClasses(bool show){home.gameObject.SetActive(!show);classes.gameObject.SetActive(show);(show?classes:home).GetComponentInChildren<Button>().Select();}
         void ShowOptions(bool show){home.gameObject.SetActive(!show);options.gameObject.SetActive(show);(show?options:home).GetComponentInChildren<Button>().Select();RefreshOptions();}
         void Volume(float delta){AudioListener.volume=Mathf.Clamp01(AudioListener.volume+delta);PlayerPrefs.SetFloat("Codice.Volume",AudioListener.volume);PlayerPrefs.Save();RefreshOptions();}
         void Sensitivity(float delta){PlayerPrefs.SetFloat("Codice.Sensitivity",Mathf.Clamp(PlayerPrefs.GetFloat("Codice.Sensitivity",.09f)+delta,.02f,.3f));PlayerPrefs.Save();RefreshOptions();}
