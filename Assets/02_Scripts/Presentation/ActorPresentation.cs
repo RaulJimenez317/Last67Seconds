@@ -30,7 +30,7 @@ namespace Codice.Presentation
             player=GetComponent<PlayerCharacter>();enemy=GetComponent<BasicEnemy>();boss=GetComponent<BossCharacter>();agent=GetComponent<NavMeshAgent>();previous=transform.position;
             if(player){oldHealth=player.State.Health;SetupPlayer();}
             else if(enemy){Body=enemy.animator;Configure(Body,PresentationLibrary.Load().medium);oldHealth=enemy.Health;}
-            else if(boss){Body=boss.visual.GetComponentInChildren<Animator>();if(!Body)Body=boss.visual.GetChild(0).gameObject.AddComponent<Animator>();Configure(Body,boss.kind==BossKind.GoblinKing?PresentationLibrary.Load().goblin:PresentationLibrary.Load().demon);oldHealth=boss.Health;AttachBossWeapons();}
+            else if(boss){Body=boss.visual.GetComponentInChildren<Animator>();if(!Body)Body=boss.visual.GetChild(0).gameObject.AddComponent<Animator>();if(!boss.useNativeAnimator)Configure(Body,boss.kind==BossKind.GoblinKing?PresentationLibrary.Load().goblin:PresentationLibrary.Load().demon);else {Body.applyRootMotion=false;Body.cullingMode=AnimatorCullingMode.AlwaysAnimate;}oldHealth=boss.Health;AttachBossWeapons();}
         }
         static void Configure(Animator a,RuntimeAnimatorController controller){if(!a)return;a.runtimeAnimatorController=controller;a.applyRootMotion=false;a.cullingMode=AnimatorCullingMode.AlwaysAnimate;a.speed=1;a.SetFloat("ActionSpeed",1);}
         static Transform Bone(Transform root,string name)=>root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t=>string.Equals(t.name,name,StringComparison.OrdinalIgnoreCase));
@@ -125,13 +125,14 @@ namespace Codice.Presentation
             if(CurrentState!=state||restart){CurrentState=state;if(Body&&Body.isActiveAndEnabled)Body.CrossFadeInFixedTime(state,.08f,0);if(Arms&&Arms.isActiveAndEnabled)Arms.CrossFadeInFixedTime(state,.06f,0);}
             if(duration>0)lockedUntil=Time.time+duration;
         }
-        static void SetActionSpeed(Animator a,string state,float duration){if(!a||!a.runtimeAnimatorController)return;var clip=a.runtimeAnimatorController.animationClips.FirstOrDefault(c=>c.name==state);a.SetFloat("ActionSpeed",clip?clip.length/Mathf.Max(.1f,duration):1);}
+        static void SetActionSpeed(Animator a,string state,float duration){if(!a||!a.runtimeAnimatorController)return;var clip=a.runtimeAnimatorController.animationClips.FirstOrDefault(c=>c.name==state) ?? a.runtimeAnimatorController.animationClips.FirstOrDefault(c=>c.name.EndsWith(state,StringComparison.Ordinal));a.SetFloat("ActionSpeed",clip?clip.length/Mathf.Max(.1f,duration):1);}
         public void Attack(bool ranged,float duration=.5f)
         {
             var weapon=GetComponent<PlayerCharacter>()?.State.ActiveWeapon;
             var cue=weapon!=null?(weapon.kind==WeaponKind.Bow?SoundCue.Bow:weapon.kind==WeaponKind.Musket?SoundCue.Gun:weapon.kind==WeaponKind.Staff?SoundCue.Magic:weapon.kind==WeaponKind.Hammer||weapon.kind==WeaponKind.Axe?SoundCue.Heavy:SoundCue.Swing):GetComponent<BossCharacter>()?SoundCue.Boss:ranged?SoundCue.Bow:SoundCue.Swing;
             if(weapon!=null)GameAudio.Play(cue);else GameAudio.PlayAt(cue,transform.position);
             string state=ranged?"Shoot":"Melee";
+            if(boss&&boss.useNativeAnimator&&boss.CurrentAttack==BossAttack.Slam&&Body&&Body.HasState(0,Animator.StringToHash("Slam")))state="Slam";
             if(player){var k=player.State.ActiveWeapon?.kind;if(k==WeaponKind.Bow)state="ShootBow";else if(k==WeaponKind.Staff)state="ShootMagic";else if(k==WeaponKind.Hammer||k==WeaponKind.Axe||k==WeaponKind.Scythe)state="HeavyAttack";else if(k==WeaponKind.Polearm||k==WeaponKind.Dagger)state="Thrust";}
             if(enemy&&enemy.kind==EnemyKind.Mage)state="ShootMagic";
             if(enemy&&enemy.kind==EnemyKind.Heavy)state="HeavyAttack";

@@ -7951,8 +7951,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshSurface
   m_SerializedVersion: 0
   m_AgentTypeID: 0
-  m_CollectObjects: 1
-  m_Size: {x: 120, y: 30, z: 120}
+  m_CollectObjects: 0
+  m_Size: {x: 110, y: 110, z: 110}
   m_Center: {x: 0, y: 0, z: 0}
   m_LayerMask:
     serializedVersion: 2
@@ -7967,7 +7967,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.16666667
   m_MinRegionArea: 2
-  m_NavMeshData: {fileID: 23800000, guid: 95b88a057e7fa6744ae7287b2e9e556b, type: 2}
+  m_NavMeshData: {fileID: 23800000, guid: 347d47c8834918348b00b6e628545519, type: 2}
   m_BuildHeightMesh: 0
 --- !u!114 &135847023
 MonoBehaviour:
@@ -8836,7 +8836,7 @@ Transform:
   m_GameObject: {fileID: 150656159}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.05, z: 0}
+  m_LocalPosition: {x: 0, y: 0.06666669, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11321,7 +11321,7 @@ Transform:
   m_GameObject: {fileID: 207571665}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.0000018358783, y: 0.1, z: -21}
+  m_LocalPosition: {x: -0.0000018358783, y: 0.06666669, z: -21}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -56515,7 +56515,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1301196560133571490, guid: 3abee934954fda04b9755f9d00e7269d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.1
+      value: 0.16666669
       objectReference: {fileID: 0}
     - target: {fileID: 1301196560133571490, guid: 3abee934954fda04b9755f9d00e7269d, type: 3}
       propertyPath: m_LocalPosition.z
@@ -64021,7 +64021,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Codice.Mechanics.RunScene
   player: {fileID: 1065334139}
   dungeon: {fileID: 135847023}
-  arena: {fileID: 0}
+  arena: {fileID: 1837411768}
   portal: {fileID: 232688580}
   lootMarkers:
   - {fileID: 2105219840}
@@ -91241,7 +91241,7 @@ Transform:
   m_GameObject: {fileID: 1721069673}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 20.999998, y: 0.1, z: 0.0000012516975}
+  m_LocalPosition: {x: 21, y: 0.06666669, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -97047,6 +97047,66 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d2711be6e052984458d37ae94edfc00b, type: 3}
   m_PrefabInstance: {fileID: 1836900965}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1837411767
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1837411769}
+  - component: {fileID: 1837411768}
+  m_Layer: 0
+  m_Name: Boss encounter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1837411768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1837411767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34e4abf631ee5d64ab92d16657c01e33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Codice.Bosses.BossEncounter
+  goblinPrefab: {fileID: 0}
+  demonPrefab: {fileID: 0}
+  bossPrefabs:
+  - {fileID: 7520970785355047196, guid: fc439237f4b0bd644b9453ee671b4edf, type: 3}
+  - {fileID: 5736325401628743372, guid: 62fbce5a3837ab64289f97c3914c153d, type: 3}
+  - {fileID: 2344299650613300693, guid: 3c7eef2836e73d94982ddbee15eaf1f7, type: 3}
+  - {fileID: 1089561174211712050, guid: 72dbaf17e90e2ce4593cdd374efc0c0e, type: 3}
+  finalBossPrefab: {fileID: 3544763865866982546, guid: 26b5f8cce70a78f489745b70ead0c231, type: 3}
+  player: {fileID: 1065334139}
+  spawnPoint: {fileID: 150656160}
+  level: 5
+  startOnPlay: 0
+  managedByRun: 1
+  onCompleted:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!4 &1837411769
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1837411767}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1840847908
 GameObject:
   m_ObjectHideFlags: 0
@@ -103434,7 +103494,7 @@ Transform:
   m_GameObject: {fileID: 1966247242}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.1, z: 21}
+  m_LocalPosition: {x: 0, y: 0.06666669, z: 21}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -104475,7 +104535,7 @@ Transform:
   m_GameObject: {fileID: 1981246683}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -20.999998, y: 0.1, z: 0.0000012516975}
+  m_LocalPosition: {x: -20.999998, y: 0.06666669, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -111479,3 +111539,4 @@ SceneRoots:
   - {fileID: 451496047}
   - {fileID: 135847024}
   - {fileID: 1196857466}
+  - {fileID: 1837411769}

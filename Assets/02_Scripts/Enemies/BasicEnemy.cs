@@ -183,6 +183,7 @@ namespace Codice.Enemies
                 Codice.Mechanics.LootPickup.DropFromEnemy(killer, transform.position);
             }
             GetComponent<Codice.Presentation.ActorPresentation>()?.Die();
+            Codice.Mechanics.RunDirector.Instance?.RegisterKill();
             Died?.Invoke(this);
             gameObject.SetActive(false);
             Destroy(gameObject);

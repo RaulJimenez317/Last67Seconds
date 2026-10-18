@@ -128,7 +128,7 @@ namespace Codice.UI
             var keys=Keyboard.current;
             if(keys!=null&&keys.escapeKey.wasPressedThisFrame&&Player.State.IsAlive&&!ShopVisible)
             {escapeFrame=Time.frameCount;SetPaused(!Paused);}
-            Refresh();UpdateMenus();UpdateWorld();
+            Refresh();UpdateMenus();UpdateWorld();UpdateBossAnnouncement();
             float dt=Time.unscaledDeltaTime;
             damagePulse=Mathf.MoveTowards(damagePulse,0,dt*1.8f);goldPulse=Mathf.MoveTowards(goldPulse,0,dt*2.5f);
             vignette.color=new Color(.85f,.08f,.19f,damagePulse*.65f);
@@ -172,15 +172,18 @@ namespace Codice.UI
             if(director)
             {
                 timers.text=$"PARTIDA   {UIWidgets.Clock(director.Elapsed)}\nRONDA     {UIWidgets.Clock(director.RoundElapsed)}\n<size=16><color={(director.RoundElapsed<180?"#F5D76E":"#777C91")}>◆ RAPIDEZ +100 • MENOS DE 03:00</color></size>";
-                level.text=$"NIVEL {director.Level:00}   /   {(Context.IsArena?"☠ COLISEO":"CALABOZO")}";
-                if(Context.dungeon){int total=Context.dungeon.Total;progress.fillAmount=total>0?(float)Context.dungeon.Defeated/total:0;progressText.text=$"{total-Context.dungeon.Defeated} / {total} ENEMIGOS  •  MERCADER {(total+1)/2}/{total}  •  JEFE CADA 5";}
-                else{progress.fillAmount=Context.arena.Completed?1:0;progressText.text="☠  ENCUENTRO DE JEFE";}
+                level.text=$"RONDA {director.Level:00} / {RoundRules.FinalRound}   •   {(RoundRules.IsFinal(director.Level)?"☠ ARENA FINAL":RoundRules.IsColiseumRound(director.Level)?"COLISEO":"CALABOZO")}";
+                if(Context.UsesDungeonEncounter(director.Level)){int total=Context.dungeon.Total;progress.fillAmount=total>0?(float)Context.dungeon.Defeated/total:0;progressText.text=$"{total-Context.dungeon.Defeated} / {total} ENEMIGOS  •  MERCADER {(total+1)/2}/{total}  •  JEFE CADA 5";}
+                else{progress.fillAmount=Context.arena&&Context.arena.Completed?1:0;progressText.text="☠  ENCUENTRO DE JEFE";}
+                if(director.Phase==RunPhase.Shop)progressText.text=$"MERCADER • [E] COMPRAR • [ENTER] CONTINUAR • {director.ShopRemaining:0}s";
+                else if(director.Phase==RunPhase.Cleared)progressText.text=RoundRules.OpensPortalAfter(director.Level)?"RONDA COMPLETADA • ENTRA AL PORTAL [E]":"RONDA COMPLETADA • PREPARANDO SIGUIENTE RONDA";
             }
             var boss=Context.arena?Context.arena.ActiveBoss:null;bossPanel.gameObject.SetActive(boss);
             if(boss)
-            {bossTitle.text=(boss.kind==BossKind.GoblinKing?"REY GOBLIN DE LA INMUNDICIA":"SEÑOR DEMONIO DEL ABISMO")+(boss.Evolved?" • EVOLUCIONADO Nv.15+":"");BossHealth.Set(boss.Health,boss.MaxHealth);bossAttack.text=$"FASE {boss.Phase}   /   "+new[]{"Acechando","¡Roca entrante!","¡Lodo!","¡Barrido!","¡Golpe sísmico!","¡Salva de flechas!"}[(int)boss.CurrentAttack];}
+            {bossTitle.text=BossName(boss.kind)+(boss.Evolved?" • EVOLUCIONADO Nv.15+":"");BossHealth.Set(boss.Health,boss.MaxHealth);bossAttack.text=$"FASE {boss.Phase}   /   "+new[]{"Acechando","¡Roca entrante!","¡Lodo!","¡Barrido!","¡Golpe sísmico!","¡Salva de flechas!"}[(int)boss.CurrentAttack];}
             cursorHint.text=Paused?"[Escape] Reanudar y capturar cursor":ShopVisible?"[E / Escape] Cerrar tienda   •   [Enter] Continuar ronda":Cursor.lockState==CursorLockMode.Locked?"[E] Interactuar   •   [Escape] Pausa / liberar cursor":"Haz clic para capturar el cursor   •   [Escape] Pausa";
         }
+        static string BossName(BossKind kind)=>kind==BossKind.GoblinKing?"REY GOBLIN DE LA INMUNDICIA":kind==BossKind.DemonLord?"SEÑOR DEMONIO DEL ABISMO":kind==BossKind.MonsterOrc?"MONSTER ORC":kind==BossKind.MonsterMutant?"MONSTER MUTANT":"ORK BERSERKER • JEFE FINAL";
         void CombatResolved(CombatFeedback.Result result)
         {
             if(!Player||!result.hit.source||result.hit.source.GetComponentInParent<PlayerCharacter>()!=Player)return;

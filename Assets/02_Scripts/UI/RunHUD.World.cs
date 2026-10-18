@@ -41,7 +41,7 @@ namespace Codice.UI
                 if(Player.State.PassiveCount==3){text="REEMPLAZAR POR: "+UIWidgets.Passive(p.passive);for(int i=0;i<3;i++)text+="\n["+new[]{"Shift","Ctrl","Alt"}[i]+" + E] "+UIWidgets.Passive(Player.State.GetPassive(i));}
                 return text;
             }
-            return item is RunPortal?"PORTAL ABIERTO\n[E] Viajar al "+(Context.IsArena?"Calabozo":"Coliseo"):"";
+            return item is RunPortal?"PORTAL ABIERTO\n[E] Viajar al "+RoundRules.SceneForRound(RunDirector.Instance.Level+1):"";
         }
         static string CompareWeapon(WeaponInstance w)=>w==null?"Vacía":$"<color=#{ColorUtility.ToHtmlStringRGB(ProceduralUISprites.Tier(w.tier))}>{UIWidgets.WeaponName(w.kind)} T{w.tier}</color>\n{w.Damage:0} daño • {w.AttacksPerSecond:0.00}/s\n{UIWidgets.Special(w.kind)}";
         void ScanWorld()

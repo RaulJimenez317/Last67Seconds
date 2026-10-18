@@ -10,6 +10,10 @@ namespace Codice.Bosses
     public sealed class BossEncounter : MonoBehaviour
     {
         public BossCharacter goblinPrefab, demonPrefab;
+        [Tooltip("Pool used for rounds 5, 10 and 15. If empty, the original two bosses are used.")]
+        public BossCharacter[] bossPrefabs;
+        [Tooltip("Only used in the FST final arena on round 20.")]
+        public BossCharacter finalBossPrefab;
         public PlayerCharacter player;
         public Transform spawnPoint;
         [Min(5)] public int level = 5;
@@ -82,8 +86,16 @@ namespace Codice.Bosses
         }
         public bool BeginEncounter(int round)
         {
-            if (round < 5 || round % 5 != 0 || ActiveBoss || !player || !player.State.IsAlive || !spawnPoint) return false;
-            var prefab = KindForLevel(round) == BossKind.GoblinKing ? goblinPrefab : demonPrefab;
+            if (!Codice.Mechanics.RoundRules.IsBoss(round) || ActiveBoss || !player || !player.State.IsAlive || !spawnPoint) return false;
+            BossCharacter prefab;
+            if (Codice.Mechanics.RoundRules.IsFinal(round)) prefab = finalBossPrefab;
+            else
+            {
+                var pool = bossPrefabs == null || bossPrefabs.Length == 0 ? new[] { goblinPrefab, demonPrefab } : bossPrefabs;
+                var valid = System.Array.FindAll(pool, candidate => candidate);
+                if(valid.Length==0)return false;
+                prefab = valid[UnityEngine.Random.Range(0, valid.Length)];
+            }
             if (!prefab || !NavMesh.SamplePosition(spawnPoint.position, out var hit, 4, NavMesh.AllAreas)) return false;
             level = round; Completed = false;
             ActiveBoss = Instantiate(prefab, hit.position, spawnPoint.rotation);

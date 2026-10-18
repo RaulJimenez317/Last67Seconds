@@ -67,5 +67,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "Last67Seconds.slnx"
+    "dotnet.defaultSolution": "Last67Seconds-Maps.slnx"
 }

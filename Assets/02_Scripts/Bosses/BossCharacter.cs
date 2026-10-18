@@ -7,7 +7,7 @@ using UnityEngine.AI;
 
 namespace Codice.Bosses
 {
-    public enum BossKind { GoblinKing, DemonLord }
+    public enum BossKind { GoblinKing, DemonLord, MonsterOrc, MonsterMutant, OrkBerserker }
     public enum BossAttack { None, Rock, Mud, Sweep, Slam, Bow }
     public enum BossState { Idle, Moving, Windup, Recovery, Stunned, Dead }
 
@@ -21,6 +21,8 @@ namespace Codice.Bosses
         public Material baseMaterial, evolvedMaterial, rockMaterial, mudMaterial, fireMaterial;
         public BasicEnemy[] summons;
         public GameObject meleeWeapon, bowWeapon;
+        [Tooltip("Keeps the imported creature controller instead of replacing it with the shared humanoid controller.")]
+        public bool useNativeAnimator;
         public float Health { get; private set; }
         public float MaxHealth { get; private set; }
         public bool IsAlive => Health > 0;
@@ -28,7 +30,7 @@ namespace Codice.Bosses
         public bool Paused { get; private set; }
         public int Level { get; private set; }
         public int Phase => kind == BossKind.GoblinKing ? 1 : Health > MaxHealth * .65f + .001f ? 1 : Health > MaxHealth * .30f + .001f ? 2 : 3;
-        public float SpeedMultiplier => kind == BossKind.DemonLord ? 1 + .3f * (Phase - 1) : 1;
+        public float SpeedMultiplier => kind == BossKind.GoblinKing ? 1 : 1 + .15f * (Phase - 1);
         public BossAttack CurrentAttack { get; private set; }
         public BossState State { get; private set; }
         public event Action<BossCharacter> Changed, Died, HitByPlayer;
@@ -36,7 +38,7 @@ namespace Codice.Bosses
         NavMeshAgent agent;
         float attackTimer = 2, windup, summonTimer, repath;
         int sequence, healthSummons;
-        Vector3 aim, facing;
+        Vector3 aim, facing, visualRestPosition;
         Quaternion rest;
         Transform leftArm, rightArm;
         Quaternion leftRest, rightRest;
@@ -53,6 +55,7 @@ namespace Codice.Bosses
             Codice.Presentation.ActorPresentation.Install(gameObject);
             if (!visual) return;
             rest = visual.localRotation;
+            visualRestPosition = visual.localPosition;
             foreach (var bone in visual.GetComponentsInChildren<Transform>())
             {
                 if (bone.name == "upperarm_l") { leftArm = bone; leftRest = bone.localRotation; }
@@ -72,7 +75,7 @@ namespace Codice.Bosses
             summonTimer = SummonInterval; attackTimer = 2; healthSummons = sequence = 0;
             CurrentAttack = BossAttack.None; State = BossState.Idle;
             Paused = false; stunnedUntil = retreatRemaining = windup = repath = 0;
-            if (visual)
+            if (visual && !useNativeAnimator)
                 foreach (var renderer in visual.GetComponentsInChildren<Renderer>())
                 {
                     if ((meleeWeapon && renderer.transform.IsChildOf(meleeWeapon.transform)) || (bowWeapon && renderer.transform.IsChildOf(bowWeapon.transform))) continue;
@@ -97,7 +100,7 @@ namespace Codice.Bosses
             summonTimer -= dt;
             if (summonTimer <= 0) { Summon(); summonTimer = SummonInterval; }
             if (!agent.isOnNavMesh) return;
-            agent.speed = (kind == BossKind.GoblinKing ? 2.4f : 3.6f) * SpeedMultiplier;
+            agent.speed = (kind == BossKind.GoblinKing ? 2.4f : kind == BossKind.DemonLord ? 3.6f : 3.1f) * SpeedMultiplier;
             Vector3 delta = Target.transform.position - transform.position; delta.y = 0;
             if (kind == BossKind.GoblinKing && delta.sqrMagnitude > .001f)
                 transform.rotation = Quaternion.LookRotation(delta);
@@ -150,7 +153,7 @@ namespace Codice.Bosses
             stunnedUntil = Mathf.Max(stunnedUntil, Time.time + seconds);
             CurrentAttack = BossAttack.None; State = BossState.Stunned; windup = retreatRemaining = 0;
             if (agent.isOnNavMesh) agent.isStopped = true;
-            if (visual) { var p = visual.localPosition; p.y = 0; visual.localPosition = p; visual.localRotation = rest; }
+            if (visual) { visual.localPosition = visualRestPosition; visual.localRotation = rest; }
         }
         Vector3 retreatDirection;
         void LateUpdate()
@@ -164,7 +167,7 @@ namespace Codice.Bosses
             if (retreatRemaining <= 0 || Paused || Time.time < stunnedUntil || !IsAlive || !Target || !Target.State.IsAlive || !agent.isOnNavMesh) return;
             retreatRemaining -= Time.deltaTime;
             agent.Move(retreatDirection * (7 * Time.deltaTime));
-            if (visual) { var p = visual.localPosition; p.y = Mathf.Sin(Mathf.Clamp01(retreatRemaining / .45f) * Mathf.PI) * .8f; visual.localPosition = p; }
+            if (visual) visual.localPosition = visualRestPosition + Vector3.up * (Mathf.Sin(Mathf.Clamp01(retreatRemaining / .45f) * Mathf.PI) * (useNativeAnimator ? 0 : .8f));
         }
         public bool HasLineOfSight(Vector3 point)
         {
@@ -241,6 +244,7 @@ namespace Codice.Bosses
                 var killer = hit.source ? hit.source.GetComponentInParent<PlayerCharacter>() : null;
                 if (killer && killer.State.IsAlive) Codice.Mechanics.GoldPickup.Drop(transform.position, goldReward, killer);
                 GetComponent<Codice.Presentation.ActorPresentation>()?.Die();
+                Codice.Mechanics.RunDirector.Instance?.RegisterKill();
                 Died?.Invoke(this); gameObject.SetActive(false); Destroy(gameObject); return;
             }
             if (Phase != previousPhase) summonTimer = Mathf.Min(summonTimer, SummonInterval);

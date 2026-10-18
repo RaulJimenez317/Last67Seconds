@@ -46,7 +46,7 @@ namespace Codice.Presentation
             if(!Library)return;
             foreach(var s in voices)s.Stop();GameplayPaused=false;director=null;scanAt=0;
             System.Array.Clear(ready,0,ready.Length);
-            var clip=scene.name=="MainMenu"?Library.menu:scene.name=="Calabozo"?Library.dungeon:scene.name=="Coliseo"?Library.arena:null;
+            var clip=scene.name=="MainMenu"?Library.menu:scene.name=="Calabozo"?Library.dungeon:(scene.name=="Coliseo"||scene.name=="FinalArena")?Library.arena:null;
             if(CurrentMusic==clip)return;
             activeMusic=1-activeMusic;var next=music[activeMusic];next.Stop();next.clip=clip;next.volume=0;if(clip)next.Play();
         }
@@ -59,13 +59,13 @@ namespace Codice.Presentation
                 GameplayPaused=paused;
                 for(int i=0;i<voices.Length;i++)if(!interfaceVoice[i]){if(paused)voices[i].Pause();else voices[i].UnPause();}
             }
-            float target=paused?.12f:director&&(director.Phase==RunPhase.Defeated||director.Phase==RunPhase.Cleared)?.18f:.32f;
+            float target=paused?.12f:director&&(director.Phase==RunPhase.Defeated||director.Phase==RunPhase.Cleared||director.Phase==RunPhase.Victory)?.18f:.32f;
             target *= Library.musicVolume;
             for(int i=0;i<2;i++){music[i].volume=Mathf.MoveTowards(music[i].volume,i==activeMusic?target:0,Time.unscaledDeltaTime*.4f);if(i!=activeMusic&&music[i].volume==0)music[i].Stop();}
             var run=RunDirector.Instance;
             if(director!=run){director=run;lastPhase=RunPhase.Combat;}
             if(director&&director.Phase!=lastPhase)
-            {lastPhase=director.Phase;if(lastPhase==RunPhase.Defeated)Play(SoundCue.Defeat);else if(lastPhase==RunPhase.Cleared)Play(SoundCue.Victory);}
+            {lastPhase=director.Phase;if(lastPhase==RunPhase.Defeated)Play(SoundCue.Defeat);else if(lastPhase==RunPhase.Victory)Play(SoundCue.Victory);}
             if(Time.unscaledTime>=scanAt)
             {
                 scanAt=Time.unscaledTime+.25f;

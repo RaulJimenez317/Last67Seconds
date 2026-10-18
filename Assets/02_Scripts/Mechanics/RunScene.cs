@@ -12,7 +12,9 @@ namespace Codice.Mechanics
         public BossEncounter arena;
         public RunPortal portal;
         public Transform[] lootMarkers;
-        public bool IsArena => arena;
+        public bool IsArena => arena && !dungeon;
+        public bool UsesBossEncounter(int round) => arena && RoundRules.IsBoss(round);
+        public bool UsesDungeonEncounter(int round) => dungeon && !UsesBossEncounter(round);
         void Awake()
         {
             if (dungeon) dungeon.startOnPlay = false;

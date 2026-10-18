@@ -11,7 +11,7 @@ namespace Codice.UI
         readonly Button[] buyButtons=new Button[4],replaceButtons=new Button[3];
         readonly Text[] offerTexts=new Text[4];
         readonly Image[] offerIcons=new Image[4];
-        Text shopGold,shopMessage,pauseClass;
+        Text shopGold,shopMessage,pauseClass,victoryStats;
         Merchant merchant;
         int replacement=-1;
         float previousTimeScale=1;
@@ -47,11 +47,11 @@ namespace Codice.UI
             UIWidgets.Button(defeatPanel,"VOLVER A JUGAR",35,230,630,50,()=>{SetPaused(false);if(director)director.RestartLevel();});
             UIWidgets.Button(defeatPanel,"IR AL MENÚ PRINCIPAL",35,300,630,50,RunNavigation.MainMenu);
             victoryPanel=Panel("Victory",-350,-250,700,500);Anchor(victoryPanel,.5f,.5f);
-            UIWidgets.Label(victoryPanel,"Heading",35,38,630,65,40,ProceduralUISprites.Gold).text="VICTORIA EN EL COLISEO";
-            UIWidgets.Label(victoryPanel,"Description",35,125,630,80,23).text="El señor del Coliseo ha caído.\nTu viaje puede continuar.";
-            UIWidgets.Button(victoryPanel,"CONTINUAR VIAJE",35,230,630,55,()=>{if(director)director.Travel();});
-            UIWidgets.Button(victoryPanel,"VOLVER A JUGAR",35,310,630,55,()=>{if(director)director.RestartLevel();});
-            UIWidgets.Button(victoryPanel,"IR AL MENÚ PRINCIPAL",35,390,630,55,RunNavigation.MainMenu);
+            UIWidgets.Label(victoryPanel,"Heading",35,38,630,65,40,ProceduralUISprites.Gold).text="EL CÓDICE HA SIDO CONQUISTADO";
+            UIWidgets.Label(victoryPanel,"Description",35,115,630,45,22).text="El Ork Berserker ha caído en la arena final.";
+            victoryStats=UIWidgets.Label(victoryPanel,"Final statistics",35,170,630,110,22,Color.white);
+            UIWidgets.Button(victoryPanel,"VOLVER A JUGAR",35,320,630,55,()=>{if(director)director.RestartRun();});
+            UIWidgets.Button(victoryPanel,"IR AL MENÚ PRINCIPAL",35,395,630,55,RunNavigation.MainMenu);
             victoryPanel.gameObject.SetActive(false);
             modalShade.gameObject.SetActive(false);shopPanel.gameObject.SetActive(false);pausePanel.gameObject.SetActive(false);defeatPanel.gameObject.SetActive(false);
         }
@@ -73,13 +73,14 @@ namespace Codice.UI
         void UpdateMenus()
         {
             bool dead=!Player.State.IsAlive;
-            bool won=Context.IsArena&&director&&director.Phase==Codice.Mechanics.RunPhase.Cleared&&!dead;
+            bool won=director&&director.Phase==Codice.Mechanics.RunPhase.Victory&&!dead;
             victoryPanel.gameObject.SetActive(won&&!Paused);
             var current=Context.dungeon?Context.dungeon.merchant:null;
             bool shopping=current&&current.Customer==Player;
             if(merchant!=current){merchant=current;replacement=-1;}
             modalShade.gameObject.SetActive(Paused||dead||shopping||won);shopPanel.gameObject.SetActive(shopping&&!dead&&!Paused);pausePanel.gameObject.SetActive(Paused&&!dead);defeatPanel.gameObject.SetActive(dead);
             if(dead||won){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
+            if(won&&victoryStats)victoryStats.text=$"RONDAS COMPLETADAS   {director.Level} / {Codice.Mechanics.RoundRules.FinalRound}\nENEMIGOS DERROTADOS  {director.TotalKills}\nORO REUNIDO          {Player.State.Gold:N0}\nTIEMPO TOTAL         {UIWidgets.Clock(director.Elapsed)}";
             var activeModal=dead?defeatPanel.gameObject:Paused?pausePanel.gameObject:won?victoryPanel.gameObject:shopping?shopPanel.gameObject:null;
             if(activeModal!=selectedModal)
             {

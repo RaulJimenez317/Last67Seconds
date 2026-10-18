@@ -11,9 +11,11 @@ namespace Codice.UI
         internal static bool SceneLoading=>loading!=null&&!loading.isDone;
         public static bool Loading=>transitioning||SceneLoading;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void Reset(){loading=null;transitioning=false;SelectedClass=Codice.Characters.PlayerClass.Warrior;}
-        public static void StartGame()=>Load("Calabozo");
+        public static void StartGame()=>StartGame(SelectedClass,1);
         public static void StartGame(Codice.Characters.PlayerClass selected)
-        { if(Loading)return;SelectedClass=selected;Load("Calabozo"); }
+        { StartGame(selected,1); }
+        public static void StartGame(Codice.Characters.PlayerClass selected,int round)
+        { if(Loading)return;SelectedClass=selected;round=Mathf.Clamp(round,1,RoundRules.FinalRound);PlayerPrefs.SetInt("Codice.TestRound",round);PlayerPrefs.Save();Load(RoundRules.SceneForRound(round)); }
         public static void MainMenu()=>Load("MainMenu");
         static void Load(string scene)
         {

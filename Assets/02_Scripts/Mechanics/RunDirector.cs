@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 
 namespace Codice.Mechanics
 {
-    public enum RunPhase { Combat, Shop, Cleared, Travelling, Defeated }
+    public enum RunPhase { Combat, Shop, Cleared, Travelling, Defeated, Victory }
     public sealed class RunDirector : MonoBehaviour
     {
         public static RunDirector Instance { get; private set; }
@@ -16,6 +16,8 @@ namespace Codice.Mechanics
         public float RoundElapsed { get; private set; }
         public RunPhase Phase { get; private set; }
         public bool CombatActive => Phase == RunPhase.Combat;
+        public int TotalKills { get; private set; }
+        public float ShopRemaining { get; private set; }
         public PlayerCharacter Player => scene ? scene.player : null;
         public event Action Changed;
         public event Action<string> Notice;
@@ -31,14 +33,14 @@ namespace Codice.Mechanics
         public void Enter(RunScene context)
         {
             scene = context;
-            if (Level == 0) Level = context.IsArena ? Mathf.Max(5, context.arena.level) : 1;
+            if (Level == 0) Level = Mathf.Clamp(PlayerPrefs.GetInt("Codice.TestRound", 1), 1, RoundRules.FinalRound);
+            PlayerPrefs.DeleteKey("Codice.TestRound");
             if (!string.IsNullOrEmpty(snapshot)) { context.player.RestoreRunState(snapshot); snapshot = null; }
             context.player.State.Died += OnDeath;
             if (context.dungeon)
             {
                 context.dungeon.Completed += RoundCleared;
-                context.dungeon.merchant.onIntermissionStarted.AddListener(OpenShop);
-                context.dungeon.merchant.onRoundContinued.AddListener(CloseShop);
+                if(context.dungeon.merchant){context.dungeon.merchant.onIntermissionStarted.AddListener(OpenShop);context.dungeon.merchant.onRoundContinued.AddListener(CloseShop);}
             }
             if (context.arena) context.arena.onCompleted.AddListener(RoundCleared);
             transition = false; BeginRound();
@@ -46,7 +48,13 @@ namespace Codice.Mechanics
         void Update()
         {
             if (!scene || transition) return;
-            if (Player && Player.State.IsAlive && Phase != RunPhase.Defeated)
+            if (Phase == RunPhase.Shop && scene.dungeon && scene.dungeon.merchant)
+            {
+                var merchant = scene.dungeon.merchant;
+                if (!merchant.Customer) ShopRemaining = Mathf.Max(0, ShopRemaining - Time.deltaTime);
+                if (ShopRemaining <= 0 || (Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)) merchant.ContinueRound();
+            }
+            if (Player && Player.State.IsAlive && Phase != RunPhase.Defeated && Phase != RunPhase.Victory)
             {
                 Elapsed += Time.deltaTime;
                 if (CombatActive) RoundElapsed += Time.deltaTime;
@@ -56,15 +64,16 @@ namespace Codice.Mechanics
         void BeginRound()
         {
             checkpoint=Player.State.Capture();checkpointScene=SceneManager.GetActiveScene().name;checkpointLevel=Level;checkpointElapsed=Elapsed;
-            scene.portal.SetAvailable(false);
+            if(scene.portal)scene.portal.SetAvailable(false);
             RoundElapsed = 0; SetPhase(RunPhase.Combat);
-            bool started = scene.IsArena ? scene.arena.BeginEncounter(Level) : scene.dungeon.BeginEncounter(Level, RoundRules.Roster(Level));
+            bool boss = scene.UsesBossEncounter(Level);
+            bool started = boss ? scene.arena.BeginEncounter(Level) : scene.UsesDungeonEncounter(Level) && scene.dungeon.BeginEncounter(Level, RoundRules.Roster(Level));
             if (!started) { SetPhase(RunPhase.Cleared); Debug.LogError("No se pudo iniciar la ronda " + Level, scene); return; }
-            if (!scene.IsArena) SpawnLoot();
+            if (!boss) SpawnLoot();
             Notice?.Invoke("¡Ronda " + Level + " iniciada!");
             Debug.Log("Ronda " + Level + " iniciada.", scene);
         }
-        void OpenShop() { SetPhase(RunPhase.Shop); Notice?.Invoke("¡El Mercader Errante ha aparecido!"); Debug.Log("Interludio: mercader en el centro. E para comprar; Enter en la tienda para continuar."); }
+        void OpenShop() { ShopRemaining=25; SetPhase(RunPhase.Shop); Notice?.Invoke("Mercader disponible • [E] Comprar • [Enter] Continuar ronda"); }
         void CloseShop() { if (Phase == RunPhase.Shop) SetPhase(RunPhase.Combat); }
         void RoundCleared()
         {
@@ -72,8 +81,10 @@ namespace Codice.Mechanics
             GoldPickup.CollectRemaining(Player);
             if (RoundElapsed < 180) { Player.State.AddGold(100); Notice?.Invoke("¡Bono de Rapidez +100 Oro!"); Debug.Log("Bono de rapidez: +100 oro."); }
             SetPhase(RunPhase.Cleared);
-            if (scene.IsArena || RoundRules.IsBoss(Level + 1))
-            { scene.portal.SetAvailable(true); Notice?.Invoke(scene.IsArena ? "¡Portal al Calabozo abierto!" : "¡Portal al Coliseo abierto!"); Debug.Log("Portal disponible: acércate y pulsa E para continuar."); }
+            if (RoundRules.IsFinal(Level))
+            { SetPhase(RunPhase.Victory); Notice?.Invoke("¡El Ork Berserker ha caído! El Códice de Ceniza ha sido conquistado."); return; }
+            if (RoundRules.OpensPortalAfter(Level))
+            { if(scene.portal)scene.portal.SetAvailable(true); Notice?.Invoke("¡Portal abierto! Pulsa E para continuar el viaje."); Debug.Log("Portal disponible: acércate y pulsa E para continuar."); }
             else StartCoroutine(NextDungeonRound());
         }
         IEnumerator NextDungeonRound()
@@ -85,7 +96,7 @@ namespace Codice.Mechanics
         public bool Travel()
         {
             if (transition || Phase != RunPhase.Cleared || !scene || !Player || !Player.State.IsAlive) return false;
-            string destination = RoundRules.IsBoss(Level + 1) ? "Coliseo" : "Calabozo";
+            string destination = RoundRules.SceneForRound(Level + 1);
             if (!Application.CanStreamedLevelBeLoaded(destination)) { Debug.LogError("Falta escena en Build Settings: " + destination); return false; }
             snapshot = Player.State.Capture(); Level++; transition = true; SetPhase(RunPhase.Travelling);
             SceneManager.LoadSceneAsync(destination, LoadSceneMode.Single);
@@ -101,9 +112,10 @@ namespace Codice.Mechanics
         }
         public bool RestartRun()
         {
-            if (Phase != RunPhase.Defeated || transition) return false;
-            transition = true; snapshot = null; Level = 1; Elapsed = RoundElapsed = 0;
-            SceneManager.LoadSceneAsync("Calabozo", LoadSceneMode.Single); return true;
+            if ((Phase != RunPhase.Defeated && Phase != RunPhase.Victory) || transition) return false;
+            Time.timeScale=1;
+            transition = true; snapshot = null; Level = 1; TotalKills=0; Elapsed = RoundElapsed = 0;
+            SceneManager.LoadSceneAsync(RoundRules.SceneForRound(1), LoadSceneMode.Single); return true;
         }
         public bool RestartLevel()
         {
@@ -112,11 +124,13 @@ namespace Codice.Mechanics
             SetPhase(RunPhase.Travelling);SceneManager.LoadSceneAsync(checkpointScene,LoadSceneMode.Single);return true;
         }
         void SetPhase(RunPhase phase) { Phase = phase; Changed?.Invoke(); }
+        public void RegisterKill(){TotalKills++;Changed?.Invoke();}
         void SpawnLoot()
         {
             // Clean previous round loot; keep quantities bounded across an endless run.
             foreach (var pickup in FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None)) Destroy(pickup.gameObject);
             foreach (var pickup in FindObjectsByType<LootPickup>(FindObjectsSortMode.None)) if (!pickup.respawns) Destroy(pickup.gameObject);
+            if(scene.lootMarkers==null)return;
             for (int i = 0; i < scene.lootMarkers.Length; i++)
             {
                 if (i % 2 == 0) Player.GetComponent<PlayerCombat>().CreatePickup(new WeaponInstance((WeaponKind)UnityEngine.Random.Range(0, 10), Mathf.Clamp(2 + (Level - 1) / 5, 2, 4)), scene.lootMarkers[i].position);
