@@ -61,8 +61,13 @@ namespace Codice.Presentation
                 model.transform.SetParent(hand,false);model.transform.localPosition=Vector3.zero;model.transform.localRotation=Quaternion.identity;
                 // Prefab wrappers were centred for a floating camera prop. Restore the model's grip origin.
                 if(!weaponsCalibrated&&i!=(int)WeaponKind.Bow&&model.transform.childCount>0){var mesh=model.transform.GetChild(0);mesh.localPosition=i==(int)WeaponKind.Shield?Vector3.zero:mesh.localPosition-Vector3.up*.1f;}
+                // Dagger1_3_5 has its guard near the origin and the grip along +Y.
+                // Centre that grip in the palm, independently of the generic bottom alignment.
+                if(i==(int)WeaponKind.Dagger&&model.transform.childCount>0){var mesh=model.transform.GetChild(0);mesh.localPosition=-Vector3.up*(.08f*mesh.localScale.y);}
                 model.transform.localScale=Vector3.one/Mathf.Max(.01f,hand.lossyScale.x);
                 if(i==(int)WeaponKind.Musket)model.transform.localRotation=Quaternion.Euler(90,0,0);
+                // Dagger1_3_5 points down its local Y axis, opposite to the stab clip.
+                if(i==(int)WeaponKind.Dagger)model.transform.localRotation=Quaternion.Euler(0,0,180);
                 // Blink blades face local X, while the grip animation expects local Z.
                 if(i==(int)WeaponKind.Axe||i==(int)WeaponKind.Scythe)model.transform.localRotation=Quaternion.Euler(0,-90,0);
             }
@@ -106,12 +111,12 @@ namespace Codice.Presentation
             if(!alive){Die();return;}
             bool paused=Time.timeScale==0||(enemy&&enemy.Paused)||(boss&&boss.Paused)||(player&&player.ControlsBlocked);
             if(Body)Body.speed=paused?0:1;if(Arms)Arms.speed=paused?0:1;
-            if(health<oldHealth)Hit();oldHealth=health;
+            if(health<oldHealth&&!(player&&player.GetComponent<PlayerCombat>().IsSwinging&&!player.IsStaggered))Hit();oldHealth=health;
             float distance=Vector3.ProjectOnPlane(transform.position-previous,Vector3.up).magnitude;previous=transform.position;
             if(paused)return;
             float speed=Time.deltaTime>0?distance/Time.deltaTime:0;
             if(distance<2&&speed>.4f){stepDistance+=distance;if(stepDistance>1.7f){stepDistance=0;PresentationVfx.Footstep(transform.position);}}
-            if(player&&player.State.ActiveWeapon!=null&&previousWeapon!=player.State.ActiveWeapon.kind){previousWeapon=player.State.ActiveWeapon.kind;lockedUntil=0;CurrentState="";}
+            if(player&&player.State.ActiveWeapon!=null&&previousWeapon!=player.State.ActiveWeapon.kind){previousWeapon=player.State.ActiveWeapon.kind;if(!player.GetComponent<PlayerCombat>().IsSwinging){lockedUntil=0;CurrentState="";}}
             if(Time.time<lockedUntil)return;
             string state=speed>.2f?(player?"Movement":enemy&&enemy.IsPatrolling?"Patrol":"Chase"):IdleState();
             if(player&&player.IsDashing)state="Dash";

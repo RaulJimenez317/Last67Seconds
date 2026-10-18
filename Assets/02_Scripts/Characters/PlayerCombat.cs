@@ -11,6 +11,26 @@ namespace Codice.Characters
         public GameObject[] weaponModels;
         PlayerCharacter player;
         float nextAttack, lastAttack;
+        WeaponInstance swinging;
+        float swingElapsed, swingDuration;
+        readonly HashSet<IDamageReceiver> swingHits = new HashSet<IDamageReceiver>();
+        public bool IsSwinging => swinging != null;
+        public static float MeleeRange(WeaponKind kind) => kind == WeaponKind.Dagger ? 1.35f : kind == WeaponKind.Shield ? 1.5f : kind == WeaponKind.Polearm ? 3.2f : kind == WeaponKind.Scythe ? 2.8f : kind == WeaponKind.Axe || kind == WeaponKind.Hammer ? 2.5f : 2.2f;
+        public static float ContactStart(WeaponKind kind) => kind == WeaponKind.Axe || kind == WeaponKind.Hammer || kind == WeaponKind.Scythe ? .32f : .2f;
+        public static float ContactEnd(WeaponKind kind) => kind == WeaponKind.Axe || kind == WeaponKind.Hammer || kind == WeaponKind.Scythe ? .62f : .52f;
+        void CancelSwing(){swinging=null;swingHits.Clear();}
+        void UpdateSwing(float deltaTime)
+        {
+            if(swinging==null)return;
+            if(!player.State.IsAlive||player.State.ActiveWeapon!=swinging||player.IsStaggered||Codice.UI.RunNavigation.Loading){CancelSwing();return;}
+            if(Time.timeScale==0||player.ControlsBlocked)return;
+            float before=swingElapsed/swingDuration;
+            swingElapsed+=deltaTime;
+            float after=swingElapsed/swingDuration;
+            // An interval crossing still hits on low frame rates; each receiver is struck once.
+            if(after>=ContactStart(swinging.kind)&&before<=ContactEnd(swinging.kind))ResolveMelee(swinging);
+            if(after>=1)CancelSwing();
+        }
         int combo;
         WeaponKind previousKind;
         int previousSlot = -1;
@@ -33,7 +53,7 @@ namespace Codice.Characters
                 w == null || w.kind != WeaponKind.Musket || w.ammunition >= w.Capacity || w.reserveAmmunition <= 0) return false;
             reloading = w; reloadElapsed = 0; Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Reload); return true;
         }
-        void OnDisable() { reloading = null; reloadElapsed = 0; }
+        void OnDisable() { CancelSwing(); reloading = null; reloadElapsed = 0; }
         public WeaponPickup CreatePickup(WeaponInstance weapon, Vector3 position)
         {
             var pickup = new GameObject("Dropped " + weapon.kind + " T" + weapon.tier).AddComponent<WeaponPickup>();
@@ -57,6 +77,7 @@ namespace Codice.Characters
         void Update()
         {
             var weapon = player.State.ActiveWeapon;
+            UpdateSwing(Time.deltaTime);
             if (reloading != null)
             {
                 if (!player.State.IsAlive || weapon != reloading) { reloading = null; reloadElapsed = 0; }
@@ -104,7 +125,7 @@ namespace Codice.Characters
             if (Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) return false;
             var weapon = player.State.ActiveWeapon;
             if (!player.State.IsAlive || player.ControlsBlocked || player.IsStaggered || Time.timeScale == 0 || !player.view || weapon == null || Time.time < nextAttack) return false;
-            if (IsReloading || Blocking) return false;
+            if (IsReloading || Blocking || IsSwinging) return false;
             if (!player.State.ConsumeAmmo()) { TryReload(); return false; }
             if (Time.time - lastAttack > 1.2f) combo = 0;
             combo = combo % 3 + 1;
@@ -154,37 +175,43 @@ namespace Codice.Characters
             }
             else
             {
-                float range = weapon.kind == WeaponKind.Polearm ? 3.5f : weapon.kind == WeaponKind.Sword && combo == 3 ? 2.8f : 2.2f;
-                bool wide = weapon.kind == WeaponKind.Axe || weapon.kind == WeaponKind.Hammer || weapon.kind == WeaponKind.Scythe;
-                var receivers = new HashSet<IDamageReceiver>();
-                foreach (var collider in Physics.OverlapSphere(origin, range, hitMask, QueryTriggerInteraction.Ignore))
-                {
-                    if (collider.transform.IsChildOf(transform)) continue;
-                    var receiver = collider.GetComponentInParent<IDamageReceiver>();
-                    if (receiver == null || receivers.Contains(receiver)) continue;
-                    Vector3 point = collider.ClosestPoint(origin);
-                    Vector3 offset = point - origin;
-                    // Aim at the volume's centre for the cone test. ClosestPoint can be
-                    // directly below the camera when an enemy is touching the player.
-                    Vector3 aim = collider.bounds.center - origin;
-                    Vector3 planarAim = Vector3.ProjectOnPlane(aim, Vector3.up);
-                    Vector3 planarForward = Vector3.ProjectOnPlane(forward, Vector3.up);
-                    if (Vector3.Angle(planarForward, planarAim) > (wide ? 90 : 40)) continue;
-                    if (Mathf.Abs(aim.y) > range) continue;
-                    // Cover blocks melee damage too. A multi-collider receiver is hit only once.
-                    bool blocked = false;
-                    foreach (var obstruction in Physics.RaycastAll(origin, offset.normalized, offset.magnitude, hitMask, QueryTriggerInteraction.Ignore))
-                    {
-                        if (obstruction.transform.IsChildOf(transform) || obstruction.collider.GetComponentInParent<IDamageReceiver>() == receiver) continue;
-                        // Other actors do not absorb a wide swing; solid scenery does.
-                        if (Codice.Mechanics.CombatTargets.IsEnemy(obstruction.collider.GetComponentInParent<IDamageReceiver>() as Component)) continue;
-                        blocked = true; break;
-                    }
-                    if (blocked) continue;
-                    if (receiver != null && receivers.Add(receiver)) Hit(collider, weapon, offset.normalized);
-                }
+                swinging=weapon;swingElapsed=0;swingDuration=nextAttack-Time.time;swingHits.Clear();
             }
             return true;
+        }
+        void ResolveMelee(WeaponInstance weapon)
+        {
+            var origin=player.view.transform.position;
+            var forward=player.view.transform.forward;
+            float range = MeleeRange(weapon.kind);
+            bool wide = weapon.kind == WeaponKind.Axe || weapon.kind == WeaponKind.Hammer || weapon.kind == WeaponKind.Scythe;
+            var receivers = swingHits;
+            foreach (var collider in Physics.OverlapSphere(origin, range, hitMask, QueryTriggerInteraction.Ignore))
+            {
+                if (collider.transform.IsChildOf(transform)) continue;
+                var receiver = collider.GetComponentInParent<IDamageReceiver>();
+                if (receiver == null || receivers.Contains(receiver)) continue;
+                Vector3 point = collider.ClosestPoint(origin);
+                Vector3 offset = point - origin;
+                // Aim at the volume's centre for the cone test. ClosestPoint can be
+                // directly below the camera when an enemy is touching the player.
+                Vector3 aim = collider.bounds.center - origin;
+                Vector3 planarAim = Vector3.ProjectOnPlane(aim, Vector3.up);
+                Vector3 planarForward = Vector3.ProjectOnPlane(forward, Vector3.up);
+                if (Vector3.Angle(planarForward, planarAim) > (wide ? 65 : weapon.kind == WeaponKind.Dagger || weapon.kind == WeaponKind.Polearm ? 30 : 45)) continue;
+                if (offset.sqrMagnitude > range * range) continue;
+                // Cover blocks melee damage too. A multi-collider receiver is hit only once.
+                bool blocked = false;
+                foreach (var obstruction in Physics.RaycastAll(origin, offset.normalized, offset.magnitude, hitMask, QueryTriggerInteraction.Ignore))
+                {
+                    if (obstruction.transform.IsChildOf(transform) || obstruction.collider.GetComponentInParent<IDamageReceiver>() == receiver) continue;
+                    // Other actors do not absorb a wide swing; solid scenery does.
+                    if (Codice.Mechanics.CombatTargets.IsEnemy(obstruction.collider.GetComponentInParent<IDamageReceiver>() as Component)) continue;
+                    blocked = true; break;
+                }
+                if (blocked) continue;
+                if (receiver != null && receivers.Add(receiver)) Hit(collider, weapon, offset.normalized);
+            }
         }
         void Hit(Collider collider, WeaponInstance weapon, Vector3 direction)
         {
