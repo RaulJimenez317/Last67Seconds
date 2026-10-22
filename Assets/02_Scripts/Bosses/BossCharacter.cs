@@ -93,6 +93,7 @@ namespace Codice.Bosses
         }
         void Update()
         {
+            if(Codice.Multiplayer.LanSession.Host)Target=Codice.Multiplayer.LanSession.Instance.NearestPlayer(transform.position);
             if (!IsAlive || Paused || Time.time < stunnedUntil || !Target || !Target.State.IsAlive)
             { if (agent.isOnNavMesh) agent.isStopped = true; return; }
             float dt = Time.deltaTime;

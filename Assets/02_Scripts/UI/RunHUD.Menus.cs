@@ -35,10 +35,10 @@ namespace Codice.UI
             UIWidgets.Label(shopPanel,"Replace label",33,450,1050,30,17).text="REEMPLAZAR PASIVA (si ya tienes 3)  •  Shift+3 / Ctrl+3 / Alt+3";
             for(int i=0;i<3;i++){int slot=i;replaceButtons[i]=UIWidgets.Button(shopPanel,"Ranura "+(i+1),30+i*353,492,340,45,()=>{replacement=slot;});}
             shopMessage=UIWidgets.Label(shopPanel,"Transaction result",32,555,620,88,18,ProceduralUISprites.Gold);
-            UIWidgets.Button(shopPanel,"CONTINUAR RONDA [Enter]",700,595,390,48,()=>{if(merchant)merchant.ContinueRound();});
+            UIWidgets.Button(shopPanel,Codice.Multiplayer.LanSession.Client?"CERRAR TIENDA":"CONTINUAR RONDA [Enter]",700,595,390,48,()=>{if(merchant){if(Codice.Multiplayer.LanSession.Client)merchant.CloseShop();else merchant.ContinueRound();}});
             pausePanel=Panel("Pause",-350,-290,700,580);Anchor(pausePanel,.5f,.5f);
             UIWidgets.Label(pausePanel,"Heading",35,30,630,60,40,ProceduralUISprites.Gold).text="ENTRE CENIZAS";
-            UIWidgets.Label(pausePanel,"Pause subtitle",35,95,630,35,23).text="PAUSA  /  EL TIEMPO SE DETIENE";
+            UIWidgets.Label(pausePanel,"Pause subtitle",35,95,630,35,23).text=Codice.Multiplayer.LanSession.Active?"MENÚ / LA PARTIDA EN RED CONTINÚA":"PAUSA  /  EL TIEMPO SE DETIENE";
             pauseClass=UIWidgets.Label(pausePanel,"Current class",35,152,630,180,21);
             UIWidgets.Label(pausePanel,"Controls",35,330,630,70,18).text="WASD mover • Espacio saltar • Shift dash • E interactuar\nClic izq. atacar • Clic der. escudo • Q especial • R recargar\n1/2/Tab armas • T/Y/U pasivas (10 s / recarga 20 s)";
             UIWidgets.Button(pausePanel,"VOLVER A LA PARTIDA [Escape]",35,415,630,50,()=>SetPaused(false));
@@ -46,13 +46,13 @@ namespace Codice.UI
             defeatPanel=Panel("Defeat",-350,-190,700,380);Anchor(defeatPanel,.5f,.5f);
             UIWidgets.Label(defeatPanel,"Heading",35,38,630,60,32,ProceduralUISprites.Crimson).text="LAS CENIZAS TE RECLAMAN";
             UIWidgets.Label(defeatPanel,"Description",35,125,630,85,22).text="Tu viaje termina aquí.\nRepite el nivel o regresa al menú principal.";
-            UIWidgets.Button(defeatPanel,"VOLVER A JUGAR",35,230,630,50,()=>{SetPaused(false);if(director)director.RestartLevel();});
+            UIWidgets.Button(defeatPanel,Codice.Multiplayer.LanSession.Client?"ESPERANDO AL ANFITRIÓN":"VOLVER A JUGAR",35,230,630,50,()=>{SetPaused(false);if(director)director.RestartLevel();}).interactable=!Codice.Multiplayer.LanSession.Client;
             UIWidgets.Button(defeatPanel,"IR AL MENÚ PRINCIPAL",35,300,630,50,RunNavigation.MainMenu);
             victoryPanel=Panel("Victory",-350,-250,700,500);Anchor(victoryPanel,.5f,.5f);
             UIWidgets.Label(victoryPanel,"Heading",35,32,630,80,32,ProceduralUISprites.Gold).text="EL CÓDICE HA SIDO CONQUISTADO";
             UIWidgets.Label(victoryPanel,"Description",35,115,630,45,22).text="El Ork Berserker ha caído en la arena final.";
             victoryStats=UIWidgets.Label(victoryPanel,"Final statistics",35,170,630,110,22,Color.white);
-            UIWidgets.Button(victoryPanel,"VOLVER A JUGAR",35,320,630,55,()=>{if(director)director.RestartRun();});
+            UIWidgets.Button(victoryPanel,Codice.Multiplayer.LanSession.Client?"ESPERANDO AL ANFITRIÓN":"VOLVER A JUGAR",35,320,630,55,()=>{if(director)director.RestartRun();}).interactable=!Codice.Multiplayer.LanSession.Client;
             UIWidgets.Button(victoryPanel,"IR AL MENÚ PRINCIPAL",35,395,630,55,RunNavigation.MainMenu);
             victoryPanel.gameObject.SetActive(false);
             modalShade.gameObject.SetActive(false);shopPanel.gameObject.SetActive(false);pausePanel.gameObject.SetActive(false);defeatPanel.gameObject.SetActive(false);
@@ -63,18 +63,18 @@ namespace Codice.UI
             // A click on Resume must not also fire a weapon in the same frame.
             escapeFrame=Time.frameCount;
             Paused=paused;
-            if(paused){previousTimeScale=Time.timeScale;Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
+            if(paused){previousTimeScale=Time.timeScale;if(!Codice.Multiplayer.LanSession.Active)Time.timeScale=0;Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
             else{Time.timeScale=previousTimeScale;if(Player&&Player.State.IsAlive&&!Player.ControlsBlocked&&!ResultsVisible&&!RunNavigation.Loading){Cursor.lockState=CursorLockMode.Locked;Cursor.visible=false;}}
         }
         public bool Purchase(int index)
         {
             bool success=merchant&&merchant.TryPurchase(Player,index,replacement);
-            shopMessage.text=success?"Compra realizada.":"No se pudo comprar: revisa oro, salud, stock o reemplazo.";
+            shopMessage.text=Codice.Multiplayer.LanSession.Client?"Solicitud enviada al anfitrión.":success?"Compra realizada.":"No se pudo comprar: revisa oro, salud, stock o reemplazo.";
             return success;
         }
         void UpdateMenus()
         {
-            bool dead=!Player.State.IsAlive;
+            bool dead=!Player.State.IsAlive&&(!Codice.Multiplayer.LanSession.Active||director&&director.Phase==Codice.Mechanics.RunPhase.Defeated);
             bool won=director&&director.Phase==Codice.Mechanics.RunPhase.Victory&&!dead;
             victoryPanel.gameObject.SetActive(won&&!Paused);
             var current=Context.dungeon?Context.dungeon.merchant:null;
@@ -91,13 +91,13 @@ namespace Codice.UI
                 else if(UnityEngine.EventSystems.EventSystem.current)UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
             }
             if(Paused)
-            {var s=Player.State;pauseClass.text=$"CLASE: {new[]{"Caballero","Tanque","Arquero"}[(int)s.Class]}\nVida base {s.MaxHealth:0} • Velocidad actual {s.MoveSpeed:0.0}\n\nCaballero 120 HP / 6.5 m/s\nTanque 180 HP / 4.8 m/s • Arquero 100 HP / 8 m/s";}
+            {var s=Player.State;pauseClass.text=$"CLASE: {new[]{"Caballero","Tanque","Arquero","Mago","Shinobi"}[(int)s.Class]}\nVida base {s.MaxHealth:0} • Velocidad actual {s.MoveSpeed:0.0}\n\nCaballero 120 HP / 6.5 m/s\nTanque 180 HP / 4.8 m/s • Arquero 100 HP / 8 m/s\nMago 100 HP / 6.5 m/s • 100 maná (resto: 60)";}
             if(!shopping)return;
             shopGold.text=$"• {Player.State.Gold} ORO";
             for(int i=0;i<4;i++)
             {
                 var offer=merchant.GetOffer(i);if(offer==null){buyButtons[i].interactable=false;continue;}
-                offerIcons[i].sprite=offer.kind==OfferKind.Weapon?ProceduralUISprites.Weapon(offer.weapon):ProceduralUISprites.Shape(offer.kind==OfferKind.Passive?"hex":"diamond");
+                offerIcons[i].sprite=offer.kind==OfferKind.Weapon?ProceduralUISprites.Weapon(new WeaponInstance(offer.weapon,offer.tier)):ProceduralUISprites.Shape(offer.kind==OfferKind.Passive?"hex":"diamond");
                 string title=offer.kind==OfferKind.Weapon?UIWidgets.WeaponName(offer.weapon)+"  T"+offer.tier:offer.kind==OfferKind.Passive?UIWidgets.Passive(offer.passive):"Poción de vida";
                 string details=offer.kind==OfferKind.Weapon?$"{new WeaponInstance(offer.weapon,offer.tier).Damage:0} DAÑO\n{UIWidgets.Special(offer.weapon)}":offer.kind==OfferKind.Passive?"Sello pasivo\nHasta 3 equipados":"Recupera +50% HP";
                 offerTexts[i].text=title+"\n<size=17>"+details+"</size>\n<color=#F5D76E>"+(offer.sold?"VENDIDO":offer.price+" ORO")+"</color>";
@@ -108,3 +108,4 @@ namespace Codice.UI
         }
     }
 }
+

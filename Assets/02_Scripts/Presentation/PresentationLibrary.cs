@@ -5,6 +5,7 @@ namespace Codice.Presentation
     {
         public RuntimeAnimatorController medium, goblin, demon;
         public GameObject impact, dust, explosion, muzzle;
+        public GameObject blood, gunSmoke, magicProjectile, swordSparks, magicCast;
         public GameObject[] passiveModels = new GameObject[5];
         public GameObject ammunitionModel;
         static PresentationLibrary cached;

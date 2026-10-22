@@ -11,10 +11,14 @@ namespace Codice.Enemies
     public sealed class BasicEnemy : MonoBehaviour, IDamageReceiver
     {
         public EnemyKind kind;
+        public string variantName;
+        public float healthMultiplier=1,speedMultiplier=1,damageMultiplier=1;
         public Transform weaponPivot;
         public GameObject shield;
         public EnemyProjectile projectilePrefab;
         public Animator animator;
+        public bool useNativeAnimator;
+        public bool miniboss;
         public float Health { get; private set; }
         public float MaxHealth { get; private set; }
         public bool IsAlive => Health > 0;
@@ -22,8 +26,12 @@ namespace Codice.Enemies
         public bool GuardBroken { get; private set; }
         public bool Paused { get; private set; }
         public event Action<BasicEnemy> Died;
-        public int GoldReward => new[] { 40, 50, 60, 80 }[(int)kind];
-        public float AttackDamage => new[] { 12f, 18f, 22f, 32f }[(int)kind];
+        public int GoldReward => new[] { 40, 50, 60, 80 }[(int)kind] * (miniboss ? 3 : 1);
+        public int Level {get;private set;}=1;
+        public static float HealthScale(int level){float r=Mathf.Clamp(level,1,25)-1;return 1+.095f*r+.0025f*r*r;}
+        public static float DamageScale(int level)=>1+.025f*(Mathf.Clamp(level,1,25)-1);
+        public static float SpeedScale(int level)=>1+.005f*(Mathf.Clamp(level,1,25)-1);
+        public float AttackDamage => new[] { 12f, 18f, 22f, 32f }[(int)kind]*damageMultiplier*DamageScale(Level);
         public float UltimateChargeReward => kind == EnemyKind.Heavy ? 12 : 6;
         NavMeshAgent agent;
         PlayerCharacter target;
@@ -46,18 +54,19 @@ namespace Codice.Enemies
         public void Initialize(PlayerCharacter player, int level = 1)
         {
             target = player;
-            float scale = level >= 16 ? 1.5f : level >= 11 ? 1.3f : level >= 6 ? 1.15f : 1;
-            MaxHealth = new[] { 65f, 55f, 80f, 220f }[(int)kind] * scale;
+            Level=Mathf.Clamp(level,1,25);
+            float scale=HealthScale(Level);
+            MaxHealth = new[] { 65f, 55f, 80f, 220f }[(int)kind] * scale*healthMultiplier;
             Health = MaxHealth; GuardBroken = false;
             if (shield) shield.SetActive(true);
             if (!agent) agent = GetComponent<NavMeshAgent>();
-            agent.speed = new[] { 4.2f, 3f, 2.5f, 1.8f }[(int)kind] * (level >= 16 ? 1.1f : 1);
+            agent.speed = new[] { 4.2f, 3f, 2.5f, 1.8f }[(int)kind] * speedMultiplier * SpeedScale(Level);
             agent.stoppingDistance = IsRanged ? 8 : 1.45f;
         }
 
         bool IsRanged => kind == EnemyKind.Crossbowman || kind == EnemyKind.Mage;
         public void ApplyStun(float seconds) { stagger = Mathf.Max(stagger, seconds); attacking = false; }
-        void Start() { if (!target) target = FindFirstObjectByType<PlayerCharacter>(); }
+        void Start() { if (!target) target = FindFirstObjectByType<PlayerCharacter>(); if(miniboss)Codice.UI.RunHUD.Instance?.Announce("MINIJEFE • GUARDIÁN DE LA CRIPTA"); }
 
         public void SetPaused(bool paused)
         {
@@ -72,6 +81,7 @@ namespace Codice.Enemies
 
         void Update()
         {
+            if(Codice.Multiplayer.LanSession.Host)target=Codice.Multiplayer.LanSession.Instance.NearestPlayer(transform.position);
             if (!IsAlive || !agent.isOnNavMesh) return;
             if (animator) animator.SetFloat("Speed", agent.velocity.magnitude);
             if (Paused || (target && !target.State.IsAlive)) { agent.isStopped = true; return; }
@@ -101,10 +111,10 @@ namespace Codice.Enemies
                 return;
             }
             bool visible = CanSeeTarget();
-            float range = IsRanged ? 16 : 2.1f;
+            float range = IsRanged ? 16 : miniboss ? 3 : 2.1f;
             if (distance <= range && visible && cooldown <= 0)
             {
-                attacking = true; windup = kind == EnemyKind.Crossbowman ? .8f : kind == EnemyKind.Heavy ? .9f : kind == EnemyKind.Mage ? 1 : .35f;
+                attacking = true; windup = miniboss ? 1.2f : kind == EnemyKind.Crossbowman ? .8f : kind == EnemyKind.Heavy ? .9f : kind == EnemyKind.Mage ? 1 : .35f;
                 GetComponent<Codice.Presentation.ActorPresentation>()?.Attack(IsRanged,windup);
                 aim = target.transform.position + Vector3.up;
                 agent.isStopped = true;
@@ -141,7 +151,7 @@ namespace Codice.Enemies
             if (!target || !target.State.IsAlive) return;
             if (!IsRanged)
             {
-                if (Vector3.Distance(transform.position, target.transform.position) <= 2.2f && CanSeeTarget())
+                if (Vector3.Distance(transform.position, target.transform.position) <= (miniboss ? 3.1f : 2.2f) && CanSeeTarget())
                     target.ReceiveDamage(new DamageInfo { amount = AttackDamage, source = gameObject, direction = transform.forward, melee = true });
                 return;
             }

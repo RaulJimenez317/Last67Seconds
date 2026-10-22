@@ -23,6 +23,7 @@ namespace Codice.Characters
         {
             if(swinging==null)return;
             if(!player.State.IsAlive||player.State.ActiveWeapon!=swinging||player.IsStaggered||Codice.UI.RunNavigation.Loading){CancelSwing();return;}
+            if(Blocking){CancelSwing();return;}
             if(Time.timeScale==0||player.ControlsBlocked)return;
             float before=swingElapsed/swingDuration;
             swingElapsed+=deltaTime;
@@ -32,12 +33,12 @@ namespace Codice.Characters
             if(after>=1)CancelSwing();
         }
         int combo;
-        WeaponKind previousKind;
-        int previousSlot = -1;
+        WeaponKind previousKind; WeaponInstance previousWeaponInstance;
+        int previousSlot = -1, previousTier = -1;
         Vector3 restPosition;
         Transform displayed;
         public int Combo => combo;
-        public bool Blocking => player && (player.State.Class == PlayerClass.Warrior || player.State.ActiveWeapon?.kind == WeaponKind.Shield) &&
+        public bool Blocking => Codice.Multiplayer.LanAvatar.IsRemote(this)?GetComponent<Codice.Multiplayer.LanAvatar>().block : player && (player.State.Class == PlayerClass.Warrior || player.State.ActiveWeapon?.kind == WeaponKind.Shield) &&
             player.State.IsAlive && !player.ControlsBlocked && !player.IsStaggered && !Codice.UI.RunNavigation.Loading && Time.timeScale > 0 &&
             !(Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) && Cursor.lockState == CursorLockMode.Locked && Mouse.current != null && Mouse.current.rightButton.isPressed;
         WeaponInstance reloading;
@@ -53,7 +54,7 @@ namespace Codice.Characters
                 w == null || w.kind != WeaponKind.Musket || w.ammunition >= w.Capacity || w.reserveAmmunition <= 0) return false;
             reloading = w; reloadElapsed = 0; Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Reload); return true;
         }
-        void OnDisable() { CancelSwing(); reloading = null; reloadElapsed = 0; }
+        void OnDisable() { StopAllCoroutines(); CancelSwing(); reloading = null; reloadElapsed = 0; }
         public WeaponPickup CreatePickup(WeaponInstance weapon, Vector3 position)
         {
             var pickup = new GameObject("Dropped " + weapon.kind + " T" + weapon.tier).AddComponent<WeaponPickup>();
@@ -65,6 +66,11 @@ namespace Codice.Characters
         public void AddPickupVisual(WeaponPickup pickup)
         {
             if (pickup.visual) Destroy(pickup.visual);
+            var catalog = Codice.Presentation.WeaponVisualCatalog.Load();
+            var tierModel = catalog ? catalog.Get(pickup.weapon) : null;
+            if(tierModel){pickup.visual=Instantiate(tierModel,pickup.transform);return;}
+            var specialModel = pickup.weapon.katana ? Resources.Load<GameObject>("Katana") : pickup.weapon.shuriken ? Resources.Load<GameObject>("Shuriken") : null;
+            if (specialModel) { pickup.visual = Instantiate(specialModel, pickup.transform); pickup.visual.transform.localPosition = Vector3.zero; pickup.visual.transform.localRotation = Quaternion.identity; pickup.visual.SetActive(true); return; }
             int index = (int)pickup.weapon.kind;
             if (weaponModels == null || index >= weaponModels.Length || !weaponModels[index]) return;
             pickup.visual = Instantiate(weaponModels[index], pickup.transform);
@@ -77,6 +83,7 @@ namespace Codice.Characters
         void Update()
         {
             var weapon = player.State.ActiveWeapon;
+            if(Codice.Multiplayer.LanSession.Client){if(weapon!=null)UpdateWeapon(weapon);return;}
             UpdateSwing(Time.deltaTime);
             if (reloading != null)
             {
@@ -96,20 +103,22 @@ namespace Codice.Characters
             UpdateWeapon(weapon);
             if(weaponModels != null && weaponModels.Length > (int)WeaponKind.Shield && weaponModels[(int)WeaponKind.Shield])
                 weaponModels[(int)WeaponKind.Shield].SetActive(weapon.kind == WeaponKind.Shield || Blocking);
-            if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) TryReload();
+            if (!Codice.Multiplayer.LanAvatar.IsRemote(this) && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) TryReload();
             if (displayed && !GetComponent<Codice.Presentation.ActorPresentation>())
             {
                 float phase = Mathf.Clamp01((Time.time - lastAttack) / .25f);
                 displayed.localRotation = Quaternion.Euler(-30 * Mathf.Sin(phase * Mathf.PI), 0, -25 * Mathf.Sin(phase * Mathf.PI));
                 displayed.localPosition = restPosition + Vector3.forward * (.15f * Mathf.Sin(phase * Mathf.PI));
             }
-            if (Mouse.current != null && Mouse.current.leftButton.isPressed && Cursor.lockState == CursorLockMode.Locked && Time.timeScale > 0)
+            if (!Codice.Multiplayer.LanAvatar.IsRemote(this) && Mouse.current != null && Mouse.current.leftButton.isPressed && Cursor.lockState == CursorLockMode.Locked && Time.timeScale > 0)
                 TryAttack();
         }
         void UpdateWeapon(WeaponInstance weapon)
         {
-            if (previousSlot == player.State.ActiveSlot && previousKind == weapon.kind) return;
-            previousSlot = player.State.ActiveSlot; previousKind = weapon.kind; combo = 0;
+            if (previousSlot == player.State.ActiveSlot && previousKind == weapon.kind && previousWeaponInstance==weapon && previousTier==weapon.tier) return;
+            previousTier=weapon.tier;
+            if(weaponModels!=null)Codice.Presentation.WeaponVisualCatalog.Apply(weaponModels[(int)weapon.kind],weapon);
+            previousWeaponInstance=weapon; previousSlot = player.State.ActiveSlot; previousKind = weapon.kind; combo = 0;
             displayed = null;
             if (weaponModels == null) return;
             for (int i = 0; i < weaponModels.Length; i++)
@@ -121,11 +130,14 @@ namespace Codice.Characters
         }
         public bool TryAttack()
         {
+            if(Codice.Multiplayer.LanSession.Client)return false;
+            if(Codice.Multiplayer.LanSession.Active&&!Codice.Multiplayer.LanAvatar.IsRemote(this)&&Codice.UI.RunHUD.Instance&&Codice.UI.RunHUD.Instance.Paused)return false;
             if (Codice.UI.RunNavigation.Loading || Codice.UI.RunHUD.HandlesEscapeThisFrame) return false;
             if (Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible) return false;
             var weapon = player.State.ActiveWeapon;
             if (!player.State.IsAlive || player.ControlsBlocked || player.IsStaggered || Time.timeScale == 0 || !player.view || weapon == null || Time.time < nextAttack) return false;
-            if (IsReloading || Blocking || IsSwinging) return false;
+            if (GetComponent<Codice.Mechanics.PlayerMechanics>().UltimateQueued || IsReloading || Blocking || IsSwinging || GetComponent<Codice.Mechanics.PlayerMechanics>().UltimateActive || (GetComponent<ShinobiGuard>()?.Guarding??false)) return false;
+            if (weapon.kind == WeaponKind.Staff) return GetComponent<StaffSpells>().TryCast(hitMask);
             if (!player.State.ConsumeAmmo()) { TryReload(); return false; }
             if (Time.time - lastAttack > 1.2f) combo = 0;
             combo = combo % 3 + 1;
@@ -147,7 +159,10 @@ namespace Codice.Characters
                         var bounds=mesh.sharedMesh.bounds;
                         muzzle=mesh.transform.TransformPoint(new Vector3(bounds.center.x,bounds.max.y,bounds.center.z));
                     }
-                    Codice.Presentation.PresentationVfx.Muzzle(muzzle,forward);
+                    if(displayed)foreach(var child in displayed.GetComponentsInChildren<Transform>())if(child.name=="Muzzle"){muzzle=child.position;break;}
+                    if(weapon.kind==WeaponKind.Staff)Codice.Presentation.PresentationVfx.MagicCast(muzzle,forward);
+                    else Codice.Presentation.PresentationVfx.Muzzle(muzzle,forward);
+                    if(weapon.kind==WeaponKind.Musket)Codice.Presentation.PresentationVfx.GunSmoke(muzzle,forward);
                 }
                 if (weapon.kind == WeaponKind.Musket)
                 {
@@ -164,20 +179,31 @@ namespace Codice.Characters
                         if (!Codice.Mechanics.CombatTargets.IsEnemy(receiver as Component)) break;
                     }
                 }
+                else if(weapon.shuriken)StartCoroutine(ThrowShuriken(weapon));
                 else
                 {
                     var shot = new GameObject("Player projectile").AddComponent<PlayerProjectile>();
                     shot.transform.position = origin;
                     float damage = mechanics ? mechanics.RollBasicDamage(weapon) : weapon.Damage;
                     shot.Initialize(gameObject, forward, damage, hitMask, damage > weapon.Damage * 1.5f);
-                    if (weapon.kind == WeaponKind.Bow) shot.AddArrowVisual();
+                    if(weapon.shuriken)shot.AddShurikenVisual();
+                    else if (weapon.kind == WeaponKind.Bow) shot.AddArrowVisual();
+                    else shot.AddMagicVisual();
                 }
             }
             else
             {
+                if(weapon.kind==WeaponKind.Sword)Codice.Presentation.PresentationVfx.SwordSwing(origin+forward*.8f-Vector3.up*.25f,forward);
                 swinging=weapon;swingElapsed=0;swingDuration=nextAttack-Time.time;swingHits.Clear();
             }
             return true;
+        }
+        System.Collections.IEnumerator ThrowShuriken(WeaponInstance weapon)
+        {
+            yield return new WaitForSeconds(.12f);
+            if(!player.State.IsAlive||player.State.ActiveWeapon!=weapon||player.ControlsBlocked||player.IsStaggered||Codice.UI.RunNavigation.Loading)yield break;
+            var shot=new GameObject("Thrown shuriken").AddComponent<PlayerProjectile>();shot.transform.position=player.view.transform.position;
+            shot.Initialize(gameObject,player.view.transform.forward,weapon.Damage,hitMask);shot.AddShurikenVisual();
         }
         void ResolveMelee(WeaponInstance weapon)
         {
@@ -219,7 +245,7 @@ namespace Codice.Characters
             float damage = GetComponent<Codice.Mechanics.PlayerMechanics>()?.RollBasicDamage(weapon) ?? weapon.Damage;
             collider.GetComponentInParent<IDamageReceiver>()?.ReceiveDamage(new DamageInfo
             {
-                amount = damage, critical = damage > weapon.Damage * 1.5f, hasImpactPoint = true, impactPoint = collider.ClosestPoint(player.view.transform.position), direction = direction, source = gameObject, melee = !weapon.Ranged,
+                amount = damage*(player.State.DualWield?1.25f:1), critical = damage > weapon.Damage * 1.5f, hasImpactPoint = true, impactPoint = collider.ClosestPoint(player.view.transform.position), direction = direction, source = gameObject, melee = !weapon.Ranged,
                 breaksGuard = weapon.kind == WeaponKind.Axe || weapon.kind == WeaponKind.Hammer,
                 knockback = weapon.kind == WeaponKind.Axe ? 5 : 0
             });

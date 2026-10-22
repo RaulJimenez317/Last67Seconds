@@ -33,6 +33,11 @@ namespace Codice.UI
             var sprite = Sprite.Create(texture, new Rect(0,0,n,n), new Vector2(.5f,.5f), 200, 0, SpriteMeshType.FullRect, kind == "frame" ? new Vector4(36,36,36,36) : Vector4.zero); sprite.name = kind; sprite.hideFlags = HideFlags.DontSave;
             cache[kind] = sprite; return sprite;
         }
+        public static Sprite Weapon(WeaponInstance weapon)
+        {
+            var catalog=Codice.Presentation.WeaponVisualCatalog.Load();var icon=catalog?catalog.Icon(weapon):null;
+            return icon?icon:Weapon(weapon.kind);
+        }
         public static Sprite Weapon(WeaponKind kind)
         {
             string key = "weapon" + kind;

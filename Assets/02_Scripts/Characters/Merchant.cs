@@ -35,6 +35,7 @@ namespace Codice.Characters
         void Awake() { SetVisible(available); }
         void Update()
         {
+            if(Codice.Multiplayer.LanSession.Client)return;
             if (customer && (!customer.State.IsAlive || Vector3.Distance(customer.transform.position, transform.position) > 4)) CloseShop();
         }
         void OnDisable() { CloseShop(); }
@@ -69,6 +70,7 @@ namespace Codice.Characters
         }
         public bool TryPurchase(PlayerCharacter player, int index, int replacePassiveSlot = -1)
         {
+            if(Codice.Multiplayer.LanSession.Client){Codice.Multiplayer.LanSession.Instance.ShopCommand(index);return false;}
             var offer = GetOffer(index);
             if (!available || !player || customer != player || !player.State.IsAlive || Vector3.Distance(player.transform.position, transform.position) > 4 || offer == null || offer.sold || offer.price < 0 || player.State.Gold < offer.price) return false;
             if (offer.kind == OfferKind.Healing && player.State.Health >= player.State.MaxHealth) return false;
@@ -90,12 +92,14 @@ namespace Codice.Characters
             StockChanged?.Invoke(); return true;
         }
         public void CloseShop()
-        { var previous = customer; customer = null; if (previous) previous.EndShop(); }
+        { if(Codice.Multiplayer.LanSession.Client){Codice.Multiplayer.LanSession.Instance.ShopCommand(close:true);return;} var previous = customer; customer = null; if (previous) previous.EndShop(); }
         public void ContinueRound()
         {
+            if(Codice.Multiplayer.LanSession.Client)return;
             if (!available) return;
             CloseShop(); available = false; SetVisible(false); onRoundContinued.Invoke();
         }
+        public void ApplyLan(bool open,MerchantOffer[] stock,PlayerCharacter buyer){available=open;offers=stock??Array.Empty<MerchantOffer>();SetVisible(open);if(customer!=buyer){var old=customer;customer=buyer;if(old)old.EndShop();if(buyer)buyer.BeginShop(this);}StockChanged?.Invoke();}
         void SetVisible(bool value)
         { if (visual) visual.SetActive(value); if (interactionCollider) interactionCollider.enabled = value; }
 #if UNITY_EDITOR

@@ -16,7 +16,7 @@ namespace Codice.UI
         { StartGame(selected,1); }
         public static void StartGame(Codice.Characters.PlayerClass selected,int round)
         { if(Loading)return;SelectedClass=selected;round=Mathf.Clamp(round,1,RoundRules.FinalRound);PlayerPrefs.SetInt("Codice.TestRound",round);PlayerPrefs.Save();Load(RoundRules.SceneForRound(round)); }
-        public static void MainMenu()=>Load("MainMenu");
+        public static void MainMenu(){if(Codice.Multiplayer.LanSession.Active)Codice.Multiplayer.LanSession.Instance.Leave();Load("MainMenu");}
         static void Load(string scene)
         {
             if(Loading)return;

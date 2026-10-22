@@ -20,5 +20,11 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/00_Scenes/Game.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/00_Scenes/Maps/Criptas.unity
+    guid: 3ba1e254140bf6144976cb16e4ffadd6
+  - enabled: 1
+    path: Assets/00_Scenes/Maps/Bastion.unity
+    guid: 6edb3d6529359de4bb4c14b35aa9489c
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

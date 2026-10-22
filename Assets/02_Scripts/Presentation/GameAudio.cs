@@ -46,7 +46,7 @@ namespace Codice.Presentation
             if(!Library)return;
             foreach(var s in voices)s.Stop();GameplayPaused=false;director=null;scanAt=0;
             System.Array.Clear(ready,0,ready.Length);
-            var clip=scene.name=="MainMenu"?Library.menu:scene.name=="Calabozo"?Library.dungeon:(scene.name=="Coliseo"||scene.name=="FinalArena")?Library.arena:null;
+            var clip=scene.name=="MainMenu"?Library.menu:(scene.name=="Calabozo"||scene.name=="Criptas"||scene.name=="Bastion")?Library.dungeon:(scene.name=="Coliseo"||scene.name=="FinalArena")?Library.arena:null;
             if(CurrentMusic==clip)return;
             activeMusic=1-activeMusic;var next=music[activeMusic];next.Stop();next.clip=clip;next.volume=0;if(clip)next.Play();
         }
@@ -74,7 +74,7 @@ namespace Codice.Presentation
             }
         }
         static void Impact(CombatFeedback.Result hit)
-        {if(hit.amount>0||hit.blocked)PlayAt(hit.blocked?SoundCue.Block:SoundCue.Hit,hit.position);}
+        {if(hit.target is PlayerCharacter)return;if(hit.amount>0||hit.blocked)PlayAt(hit.blocked?SoundCue.Block:SoundCue.Hit,hit.position);}
         public static void Play(SoundCue cue)=>Instance?.Emit(cue,Vector3.zero,false);
         public static void PlayAt(SoundCue cue,Vector3 point)=>Instance?.Emit(cue,point,true);
         void Emit(SoundCue cue,Vector3 point,bool spatial)

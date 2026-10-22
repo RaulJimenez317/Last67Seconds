@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Codice.Characters
 {
-    public enum PlayerClass { Warrior, Tank, Archer }
+    public enum PlayerClass { Warrior, Tank, Archer, Mage, Shinobi }
     public enum WeaponKind { Sword, Axe, Bow, Dagger, Hammer, Polearm, Scythe, Shield, Staff, Musket }
     public enum PassiveKind { Frenzy, VampiricHeart, Overload, MercuryBoots, ThornArmor }
 
@@ -11,17 +11,18 @@ namespace Codice.Characters
     public sealed class WeaponInstance
     {
         public WeaponKind kind;
+        public bool katana, shuriken;
         [Range(1, 4)] public int tier = 1;
         public int ammunition;
         public int reserveAmmunition = 18;
         public float reloadProgress;
         [Range(0, 100)] public float ultimateCharge;
-        public float Damage => Mathf.Lerp(BaseDamage, MaxDamage, (tier - 1) / 3f);
+        public float Damage => shuriken?22:Mathf.Lerp(BaseDamage, MaxDamage, (tier - 1) / 3f);
         float BaseDamage => new[] { 18f, 55, 75, 12, 60, 35, 42, 25, 45, 95 }[(int)kind];
         float MaxDamage => new[] { 65f, 190, 250, 42, 195, 115, 135, 80, 145, 280 }[(int)kind];
-        public float AttacksPerSecond => Mathf.Lerp(new[] { 2.5f, .7f, .8f, 4, .65f, 1.3f, 1.1f, 1, 1.2f, .5f }[(int)kind], new[] { 3.4f, .85f, .95f, 4.5f, .85f, 1.6f, 1.4f, 1.2f, 1.5f, .5f }[(int)kind], (tier - 1) / 3f);
+        public float AttacksPerSecond => shuriken?3:Mathf.Lerp(new[] { 2.5f, .7f, .8f, 4, .65f, 1.3f, 1.1f, 1, 1.2f, .5f }[(int)kind], new[] { 3.4f, .85f, .95f, 4.5f, .85f, 1.6f, 1.4f, 1.2f, 1.5f, .5f }[(int)kind], (tier - 1) / 3f);
         public bool Ranged => kind == WeaponKind.Bow || kind == WeaponKind.Staff || kind == WeaponKind.Musket;
-        public int Capacity => kind == WeaponKind.Bow ? Mathf.RoundToInt(Mathf.Lerp(8, 12, (tier - 1) / 3f)) : kind == WeaponKind.Musket ? 6 : 0;
+        public int Capacity => shuriken ? 30 : kind == WeaponKind.Bow ? Mathf.RoundToInt(Mathf.Lerp(24, 36, (tier - 1) / 3f)) : kind == WeaponKind.Musket ? 6 : 0;
         public WeaponInstance(WeaponKind kind, int tier = 1)
         { this.kind = kind; this.tier = Mathf.Clamp(tier, 1, 4); ammunition = Capacity; }
     }
@@ -32,6 +33,25 @@ namespace Codice.Characters
     {
         [SerializeField] PlayerClass playerClass;
         [SerializeField] float health;
+        [SerializeField] float mana, manaDelay;
+        [SerializeField] StaffSpell selectedSpell;
+        public StaffSpell SelectedSpell => selectedSpell;
+        public void SelectSpell(int index) { if(index<0||index>3)return; selectedSpell=(StaffSpell)index; Changed?.Invoke(); }
+        public const float StaffManaCost=20, StaffUltimateManaCost=40, ManaRegen=8;
+        public float MaxMana => playerClass==PlayerClass.Mage?100:60;
+        public float Mana => mana;
+        public bool HasStaff => Array.Exists(weapons,w=>w!=null&&w.kind==WeaponKind.Staff);
+        public bool SpendMana(float amount)
+        {
+            if(!IsAlive||amount<=0||float.IsNaN(amount)||float.IsInfinity(amount)||mana<amount)return false;
+            mana-=amount;manaDelay=1.5f;Changed?.Invoke();return true;
+        }
+        public void TickMana(float dt)
+        {
+            if(!IsAlive||dt<=0||float.IsNaN(dt)||float.IsInfinity(dt))return;
+            float recharge=Mathf.Max(0,dt-manaDelay);manaDelay=Mathf.Max(0,manaDelay-dt);
+            mana=Mathf.Min(MaxMana,mana+ManaRegen*recharge);
+        }
         [SerializeField] int gold;
         [SerializeField] WeaponInstance[] weapons = new WeaponInstance[2];
         [SerializeField] int activeSlot;
@@ -57,11 +77,13 @@ namespace Codice.Characters
         public event Action Changed;
         public event Action Died;
         public PlayerClass Class => playerClass;
-        public float MaxHealth => playerClass == PlayerClass.Tank ? 180 : playerClass == PlayerClass.Archer ? 100 : 120;
+        public float MaxHealth => playerClass == PlayerClass.Tank ? 180 : playerClass == PlayerClass.Archer || playerClass == PlayerClass.Mage ? 100 : 120;
         public float MoveSpeed => (playerClass == PlayerClass.Tank ? 4.8f : playerClass == PlayerClass.Archer ? 8f : 6.5f) * (HasPassive(PassiveKind.MercuryBoots) ? 1.2f : 1);
-        public float AttackSpeedMultiplier => HasPassive(PassiveKind.Frenzy) ? 1.25f : 1;
+        public bool DualWield => ActiveWeapon!=null&&!ActiveWeapon.katana&&(ActiveWeapon.kind==WeaponKind.Sword||ActiveWeapon.kind==WeaponKind.Dagger)&&weapons[1-activeSlot]!=null&&weapons[1-activeSlot].kind==ActiveWeapon.kind&&!weapons[1-activeSlot].katana;
+        public float AttackSpeedMultiplier => (HasPassive(PassiveKind.Frenzy)?1.25f:1)*(DualWield?1.3f:1);
         public bool HasPassive(PassiveKind passive)
         { for (int i = 0; i < passiveCount; i++) if (passives[i] == passive && passiveRemaining[i] > 0) return true; return false; }
+        public void NetworkRevive(){health=MaxHealth;mana=MaxMana;Changed?.Invoke();}
         public string Capture() => JsonUtility.ToJson(this);
         public void Restore(string snapshot) { JsonUtility.FromJsonOverwrite(snapshot, this); Changed?.Invoke(); }
         public void NotifyChanged() => Changed?.Invoke();
@@ -76,10 +98,11 @@ namespace Codice.Characters
 
         public void Initialize(PlayerClass selected)
         {
-            playerClass = selected; health = MaxHealth; gold = 0; activeSlot = 0; passiveCount = 0;
+            selectedSpell=StaffSpell.Arcane; playerClass = selected; health = MaxHealth; mana=MaxMana; manaDelay=0; gold = 0; activeSlot = 0; passiveCount = 0;
             passiveRemaining = new float[3]; passiveCooldown = new float[3];
             weapons = new WeaponInstance[2];
-            weapons[0] = new WeaponInstance(selected == PlayerClass.Tank ? WeaponKind.Hammer : selected == PlayerClass.Archer ? WeaponKind.Bow : WeaponKind.Sword);
+            weapons[0] = new WeaponInstance(selected == PlayerClass.Mage ? WeaponKind.Staff : selected == PlayerClass.Tank ? WeaponKind.Hammer : selected == PlayerClass.Archer ? WeaponKind.Bow : WeaponKind.Sword);
+            if(selected==PlayerClass.Shinobi){weapons[0].katana=true;weapons[1]=new WeaponInstance(WeaponKind.Bow){shuriken=true,ammunition=30};}
             Changed?.Invoke();
         }
         public bool Damage(float amount)
@@ -132,12 +155,14 @@ namespace Codice.Characters
         {
             var weapon = ActiveWeapon;
             if (weapon == null || (weapon.Capacity > 0 && weapon.ammunition <= 0)) return false;
+            if(weapon.kind==WeaponKind.Staff&&!SpendMana(StaffManaCost))return false;
             if (weapon.Capacity > 0) weapon.ammunition--;
             Changed?.Invoke(); return true;
         }
-        public bool AddAmmunition(int amount)
+        public bool AddAmmunition(int amount, int ammoType = 0)
         {
             var weapon = ActiveWeapon;
+            if(ammoType!=0)weapon=Array.Find(weapons,w=>w!=null&&w.kind==WeaponKind.Bow&&w.shuriken==(ammoType==2)&&w.ammunition<w.Capacity);
             if (!IsAlive || amount <= 0 || weapon == null || weapon.Capacity == 0) return false;
             if (weapon.kind == WeaponKind.Musket)
             {
@@ -149,18 +174,7 @@ namespace Codice.Characters
             weapon.ammunition += Mathf.Min(amount, weapon.Capacity - weapon.ammunition);
             Changed?.Invoke(); return true;
         }
-        public void TickAmmunition(float deltaTime)
-        {
-            if (!IsAlive || deltaTime <= 0) return;
-            foreach (var weapon in weapons)
-            {
-                if (weapon == null || weapon.kind != WeaponKind.Bow) continue;
-                if (weapon.ammunition >= weapon.Capacity) { weapon.reloadProgress = 0; continue; }
-                weapon.reloadProgress += deltaTime;
-                float interval = HasPassive(PassiveKind.Frenzy) ? 1.125f : 1.5f;
-                while (weapon.reloadProgress >= interval && weapon.ammunition < weapon.Capacity)
-                { weapon.reloadProgress -= interval; weapon.ammunition++; Changed?.Invoke(); }
-            }
-        }
+        // Arrows and shuriken are replenished by world pickups, never by waiting.
+        public void TickAmmunition(float deltaTime) { }
     }
 }

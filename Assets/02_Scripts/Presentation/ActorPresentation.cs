@@ -19,7 +19,7 @@ namespace Codice.Presentation
         PlayerCharacter player;BasicEnemy enemy;BossCharacter boss;NavMeshAgent agent;
         GameObject armsRoot;int selectedClass=-1;float lockedUntil,oldHealth,stepDistance;Vector3 previous;
         bool dead,weaponsCalibrated;WeaponKind previousWeapon=(WeaponKind)(-1);
-        GameObject nockedArrow;
+        GameObject nockedArrow,offhand,heldStar; WeaponKind offhandKind; Quaternion offhandRest; int offhandTier=-1; float throwUntil,throwRelease; bool dualWasVisible; int katanaSlash; float bowShotAt=-100,bowCycle=.8f,musketShotAt=-100;
         public static ActorPresentation Install(GameObject actor)
         {
             if(!PresentationLibrary.Load())return null;
@@ -28,8 +28,8 @@ namespace Codice.Presentation
         void Start()
         {
             player=GetComponent<PlayerCharacter>();enemy=GetComponent<BasicEnemy>();boss=GetComponent<BossCharacter>();agent=GetComponent<NavMeshAgent>();previous=transform.position;
-            if(player){oldHealth=player.State.Health;SetupPlayer();}
-            else if(enemy){Body=enemy.animator;Configure(Body,PresentationLibrary.Load().medium);oldHealth=enemy.Health;}
+            if(player){oldHealth=player.State.Health;if(Codice.Multiplayer.LanAvatar.IsRemote(player)){Body=player.classVisuals[(int)player.State.Class].GetComponentInChildren<Animator>();Configure(Body,PresentationLibrary.Load().medium);}else SetupPlayer();}
+            else if(enemy){Body=enemy.animator;if(!enemy.useNativeAnimator)Configure(Body,PresentationLibrary.Load().medium);else if(Body){Body.applyRootMotion=false;Body.cullingMode=AnimatorCullingMode.AlwaysAnimate;}oldHealth=enemy.Health;}
             else if(boss){Body=boss.visual.GetComponentInChildren<Animator>();if(!Body)Body=boss.visual.GetChild(0).gameObject.AddComponent<Animator>();if(!boss.useNativeAnimator)Configure(Body,boss.kind==BossKind.GoblinKing?PresentationLibrary.Load().goblin:PresentationLibrary.Load().demon);else {Body.applyRootMotion=false;Body.cullingMode=AnimatorCullingMode.AlwaysAnimate;}oldHealth=boss.Health;AttachBossWeapons();}
         }
         static void Configure(Animator a,RuntimeAnimatorController controller){if(!a)return;a.runtimeAnimatorController=controller;a.applyRootMotion=false;a.cullingMode=AnimatorCullingMode.AlwaysAnimate;a.speed=1;a.SetFloat("ActionSpeed",1);}
@@ -39,7 +39,9 @@ namespace Codice.Presentation
             if(player.classVisuals==null||player.classVisuals.Length<3||!player.view)return;
             int index=(int)player.State.Class;if(index==selectedClass)return;selectedClass=index;
             if(armsRoot){DetachWeapons();Destroy(armsRoot);}
-            var visual=player.classVisuals[index];if(!visual)return;
+            var combatModels=player.GetComponent<PlayerCombat>();
+            if(index==(int)PlayerClass.Shinobi&&combatModels.weaponModels[0].name!="Katana"){var blade=Resources.Load<GameObject>("Katana");if(blade){Destroy(combatModels.weaponModels[0]);combatModels.weaponModels[0]=Instantiate(blade);combatModels.weaponModels[0].name="Katana";}}
+            var visual=player.classVisuals[index<player.classVisuals.Length?index:0];if(!visual)return;
             Body=visual.GetComponentInChildren<Animator>(true);Configure(Body,PresentationLibrary.Load().medium);
             armsRoot=Instantiate(visual,player.view.transform);armsRoot.name="First person arms — "+player.State.Class;armsRoot.SetActive(true);
             armsRoot.transform.localPosition=new Vector3(0,-.65f,.55f);armsRoot.transform.localRotation=Quaternion.identity;
@@ -75,24 +77,63 @@ namespace Codice.Presentation
         }
         void LateUpdate()
         {
-            if(!player||!player.view)return;
+            if(!player||!player.view||Codice.Multiplayer.LanAvatar.IsRemote(player))return;
             var combat=player.GetComponent<PlayerCombat>();
             if(!combat||combat.weaponModels==null||combat.weaponModels.Length<3)return;
             var bow=combat.weaponModels[(int)WeaponKind.Bow];
-            bool drawing=player.State.IsAlive&&player.State.ActiveWeapon?.kind==WeaponKind.Bow;
-            // Keep the bow inside the first-person frustum; full-body aim clips put
-            // the left-hand prop outside the camera and use a different grip axis.
+            bool throwing=player.State.ActiveWeapon?.shuriken==true;
+            bool drawing=player.State.IsAlive&&player.State.ActiveWeapon?.kind==WeaponKind.Bow&&!throwing;
+            if(throwing&&bow)bow.SetActive(false);
+            if(!heldStar){var star=Resources.Load<GameObject>("Shuriken");if(star){heldStar=Instantiate(star,WeaponSocket);heldStar.transform.localPosition=Vector3.zero;heldStar.transform.localScale=Vector3.one/Mathf.Max(.01f,WeaponSocket.lossyScale.x);}}
+            if(heldStar)heldStar.SetActive(throwing&&player.State.IsAlive&&(Time.time<throwRelease||Time.time>=throwUntil));
+            bool dual=player.State.DualWield&&!combat.Blocking&&player.State.IsAlive;
+            if(dual&&(!offhand||offhandKind!=player.State.ActiveWeapon.kind||offhandTier!=player.State.GetWeapon(1-player.State.ActiveSlot).tier)){if(offhand)Destroy(offhand);offhandKind=player.State.ActiveWeapon.kind;offhand=Instantiate(combat.weaponModels[(int)offhandKind],Bone(armsRoot.transform,"handslot.l"));offhandTier=player.State.GetWeapon(1-player.State.ActiveSlot).tier;WeaponVisualCatalog.Apply(offhand,player.State.GetWeapon(1-player.State.ActiveSlot));offhand.name="Dual offhand";offhand.transform.localPosition=Vector3.zero;offhandRest=combat.weaponModels[(int)offhandKind].transform.localRotation;offhand.transform.localRotation=offhandRest;}
+            if(offhand){offhand.SetActive(dual);if(dual)offhand.transform.localRotation=offhandRest;}
+            var view=player.view.transform;
+            if(dual||dualWasVisible){
+                var primary=combat.weaponModels[(int)player.State.ActiveWeapon.kind];
+                if(primary)primary.transform.localRotation=Quaternion.identity;
+                if(offhand)offhand.transform.localRotation=Quaternion.identity;
+                if(dual&&!combat.IsSwinging&&Time.time>=lockedUntil){
+                    // Both grips stay on the animated hands; blades rest apart and up.
+                    if(primary)primary.transform.rotation=Quaternion.LookRotation(view.forward,(view.up+view.right*.25f).normalized);
+                    if(offhand)offhand.transform.rotation=Quaternion.LookRotation(view.forward,(view.up-view.right*.25f).normalized);
+                }
+            }
+            dualWasVisible=dual;
+            // The catalog standardizes barrel direction to +Y. Map it to camera +Z,
+            // independently of the imported hand bone's rotation.
+            if(player.State.ActiveWeapon?.kind==WeaponKind.Musket){
+                var musket=combat.weaponModels[(int)WeaponKind.Musket];
+                if(musket){float recoil=Mathf.Exp(-Mathf.Max(0,Time.time-musketShotAt)*16);
+                    musket.transform.position=view.TransformPoint(new Vector3(.23f,-.24f,.48f-recoil*.10f));
+                    musket.transform.rotation=view.rotation*Quaternion.Euler(90-recoil*5,0,0);
+                }
+            }
+            float elapsed=Time.time-bowShotAt;
+            float release=Mathf.Clamp01(elapsed/Mathf.Max(.1f,bowCycle));
+            float kick=elapsed<bowCycle?Mathf.Sin(release*Mathf.PI)*.065f:0;
             if(bow&&drawing)
             {
-                bow.transform.position=player.view.transform.TransformPoint(new Vector3(-.28f,-.22f,.7f));
-                bow.transform.rotation=player.view.transform.rotation;
+                // A short recoil and return accompany the release, instead of freezing
+                // the prop in exactly the same camera pose throughout the animation.
+                float sway=Mathf.Sin(Time.time*2)*.004f;
+                bow.transform.position=view.TransformPoint(new Vector3(-.28f+sway,-.22f-kick*.35f,.7f-kick));
+                bow.transform.rotation=view.rotation*Quaternion.Euler(kick*80,0,-kick*100);
             }
             if(!nockedArrow)
             {
                 var prefab=Resources.Load<GameObject>("PlayerArrow");
-                if(prefab){nockedArrow=Instantiate(prefab,player.view.transform);nockedArrow.name="Nocked arrow";nockedArrow.transform.localPosition=new Vector3(-.22f,-.18f,.85f);nockedArrow.transform.localRotation=Quaternion.identity;}
+                if(prefab){nockedArrow=Instantiate(prefab,view);nockedArrow.name="Nocked arrow";}
             }
-            if(nockedArrow)nockedArrow.SetActive(drawing&&player.State.ActiveWeapon.ammunition>0);
+            if(nockedArrow){
+                bool visible=drawing&&player.State.ActiveWeapon.ammunition>0&&elapsed>=bowCycle*.55f;
+                nockedArrow.SetActive(visible);
+                if(visible){float draw=elapsed<bowCycle?Mathf.SmoothStep(0,1,(release-.55f)/.45f):1;
+                    nockedArrow.transform.position=bow.transform.position+view.right*.055f+view.up*.035f+view.forward*(.18f-.12f*draw);
+                    nockedArrow.transform.rotation=view.rotation;
+                }
+            }
         }
         void AttachBossWeapons()
         {
@@ -105,7 +146,7 @@ namespace Codice.Presentation
         {
             if(dead&&player&&player.State.IsAlive){dead=false;oldHealth=player.State.Health;lockedUntil=0;CurrentState="";if(armsRoot)armsRoot.SetActive(true);}
             if(dead)return;
-            if(player)SetupPlayer();
+            if(player&&!Codice.Multiplayer.LanAvatar.IsRemote(player))SetupPlayer();
             bool alive=player?player.State.IsAlive:enemy?enemy.IsAlive:boss&&boss.IsAlive;
             float health=player?player.State.Health:enemy?enemy.Health:boss?boss.Health:oldHealth;
             if(!alive){Die();return;}
@@ -117,12 +158,14 @@ namespace Codice.Presentation
             float speed=Time.deltaTime>0?distance/Time.deltaTime:0;
             if(distance<2&&speed>.4f){stepDistance+=distance;if(stepDistance>1.7f){stepDistance=0;PresentationVfx.Footstep(transform.position);}}
             if(player&&player.State.ActiveWeapon!=null&&previousWeapon!=player.State.ActiveWeapon.kind){previousWeapon=player.State.ActiveWeapon.kind;if(!player.GetComponent<PlayerCombat>().IsSwinging){lockedUntil=0;CurrentState="";}}
+            if(player&&player.GetComponent<ShinobiGuard>()?.Guarding==true){if(Time.time>=lockedUntil)Play("ShinobiGuard");return;}
+            if(player&&player.GetComponent<Codice.Mechanics.PlayerMechanics>()?.ShieldActive==true){Play("BlockIdle");return;}
             if(Time.time<lockedUntil)return;
             string state=speed>.2f?(player?"Movement":enemy&&enemy.IsPatrolling?"Patrol":"Chase"):IdleState();
             if(player&&player.IsDashing)state="Dash";
             Play(state);
         }
-        string IdleState(){if(player){if(player.GetComponent<Codice.Mechanics.PlayerMechanics>()?.ShieldActive==true)return "BlockIdle";var k=player.State.ActiveWeapon?.kind;if(k==WeaponKind.Bow)return "BowIdle";if(k==WeaponKind.Musket)return "RifleIdle";if(k==WeaponKind.Shield)return "BlockIdle";return "Ready";}return enemy&&enemy.kind==EnemyKind.Crossbowman?"RifleIdle":enemy&&enemy.kind==EnemyKind.Heavy?"BlockIdle":"Idle";}
+        string IdleState(){if(player){if(player.GetComponent<Codice.Mechanics.PlayerMechanics>()?.ShieldActive==true)return "BlockIdle";if(player.State.DualWield)return "DualIdle";if(player.State.ActiveWeapon?.shuriken==true)return "Ready";if(player.State.ActiveWeapon?.kind==WeaponKind.Staff)return "StaffIdle";var k=player.State.ActiveWeapon?.kind;if(k==WeaponKind.Bow)return "BowIdle";if(k==WeaponKind.Musket)return "RifleIdle";if(k==WeaponKind.Shield)return "BlockIdle";return "Ready";}return enemy&&enemy.kind==EnemyKind.Crossbowman?"RifleIdle":enemy&&enemy.kind==EnemyKind.Heavy?"BlockIdle":"Idle";}
         public void Play(string state,float duration=0,bool restart=false)
         {
             if(dead&&state!="Death")return;
@@ -136,9 +179,14 @@ namespace Codice.Presentation
             var weapon=GetComponent<PlayerCharacter>()?.State.ActiveWeapon;
             var cue=weapon!=null?(weapon.kind==WeaponKind.Bow?SoundCue.Bow:weapon.kind==WeaponKind.Musket?SoundCue.Gun:weapon.kind==WeaponKind.Staff?SoundCue.Magic:weapon.kind==WeaponKind.Hammer||weapon.kind==WeaponKind.Axe?SoundCue.Heavy:SoundCue.Swing):GetComponent<BossCharacter>()?SoundCue.Boss:ranged?SoundCue.Bow:SoundCue.Swing;
             if(weapon!=null)GameAudio.Play(cue);else GameAudio.PlayAt(cue,transform.position);
+            if(player&&weapon!=null){if(weapon.kind==WeaponKind.Bow&&!weapon.shuriken){bowShotAt=Time.time;bowCycle=Mathf.Max(.2f,duration);}if(weapon.kind==WeaponKind.Musket)musketShotAt=Time.time;}
             string state=ranged?"Shoot":"Melee";
             if(boss&&boss.useNativeAnimator&&boss.CurrentAttack==BossAttack.Slam&&Body&&Body.HasState(0,Animator.StringToHash("Slam")))state="Slam";
             if(player){var k=player.State.ActiveWeapon?.kind;if(k==WeaponKind.Bow)state="ShootBow";else if(k==WeaponKind.Staff)state="ShootMagic";else if(k==WeaponKind.Hammer||k==WeaponKind.Axe||k==WeaponKind.Scythe)state="HeavyAttack";else if(k==WeaponKind.Polearm||k==WeaponKind.Dagger)state="Thrust";}
+            if(player&&player.State.ActiveWeapon?.shuriken==true){state="ThrowShuriken";throwRelease=Time.time+.12f;throwUntil=Time.time+duration*.85f;}
+            if(player&&player.State.ActiveWeapon?.kind==WeaponKind.Staff)state="StaffCast";
+            if(player&&player.State.ActiveWeapon?.katana==true)state=(katanaSlash++%2==0)?"KatanaSlashA":"KatanaSlashB";
+            if(player&&player.State.DualWield)state=weapon.kind==WeaponKind.Dagger?"DualStab":"DualSlice";
             if(enemy&&enemy.kind==EnemyKind.Mage)state="ShootMagic";
             if(enemy&&enemy.kind==EnemyKind.Heavy)state="HeavyAttack";
             Play(state,Mathf.Max(.15f,duration),true);
@@ -153,7 +201,7 @@ namespace Codice.Presentation
             // Visual-only corpse lets the existing combat system remove the actor immediately.
             var corpse=Instantiate(Body.gameObject,Body.transform.position,Body.transform.rotation);corpse.name="Animated remains";corpse.transform.localScale=Body.transform.lossyScale;
             foreach(var c in corpse.GetComponentsInChildren<Collider>())Destroy(c);
-            var animator=corpse.GetComponent<Animator>();animator.speed=1;animator.Play("Death",0,0);Destroy(corpse,3.5f);
+            var animator=corpse.GetComponent<Animator>();animator.speed=1;animator.Play("Death",0,0);if(enemy&&enemy.miniboss){animator.enabled=false;corpse.AddComponent<CorpseCollapse>();}Destroy(corpse,3.5f);
         }
     }
 }

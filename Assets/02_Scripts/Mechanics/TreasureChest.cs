@@ -29,6 +29,7 @@ namespace Codice.Mechanics
             Message="Cofre abierto • Recoge el arma con E";
             return true;
         }
+        public void ApplyLan(bool opened){Opened=opened;}
         public void Interact(PlayerCharacter player) { TryOpen(player); }
         void Awake()
         {

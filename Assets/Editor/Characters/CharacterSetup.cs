@@ -87,7 +87,7 @@ public static class CharacterSetup
         }
         finally { UnityEngine.Object.DestroyImmediate(root); }
     }
-    static GameObject Model(string path, Transform parent, float height, string texture)
+    public static GameObject Model(string path, Transform parent, float height, string texture)
     {
         var source = AssetDatabase.LoadAssetAtPath<GameObject>(path);
         if (!source) throw new InvalidOperationException("Missing model " + path);

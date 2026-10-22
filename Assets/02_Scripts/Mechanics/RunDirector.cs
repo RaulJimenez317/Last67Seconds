@@ -47,14 +47,14 @@ namespace Codice.Mechanics
         }
         void Update()
         {
-            if (!scene || transition) return;
+            if (Codice.Multiplayer.LanSession.Client || !scene || transition) return;
             if (Phase == RunPhase.Shop && scene.dungeon && scene.dungeon.merchant)
             {
                 var merchant = scene.dungeon.merchant;
                 if (!merchant.Customer) ShopRemaining = Mathf.Max(0, ShopRemaining - Time.deltaTime);
                 if (ShopRemaining <= 0 || (Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)) merchant.ContinueRound();
             }
-            if (Player && Player.State.IsAlive && Phase != RunPhase.Defeated && Phase != RunPhase.Victory)
+            if (Player && (Player.State.IsAlive||Codice.Multiplayer.LanSession.Host&&Codice.Multiplayer.LanSession.Instance.AnyAlive) && Phase != RunPhase.Defeated && Phase != RunPhase.Victory)
             {
                 Elapsed += Time.deltaTime;
                 if (CombatActive) RoundElapsed += Time.deltaTime;
@@ -63,6 +63,7 @@ namespace Codice.Mechanics
         }
         void BeginRound()
         {
+            if(Codice.Multiplayer.LanSession.Host)Codice.Multiplayer.LanSession.Instance.ReviveTeam();
             checkpoint=Player.State.Capture();checkpointScene=SceneManager.GetActiveScene().name;checkpointLevel=Level;checkpointElapsed=Elapsed;
             if(scene.portal)scene.portal.SetAvailable(false);
             RoundElapsed = 0; SetPhase(RunPhase.Combat);
@@ -77,7 +78,8 @@ namespace Codice.Mechanics
         void CloseShop() { if (Phase == RunPhase.Shop) SetPhase(RunPhase.Combat); }
         void RoundCleared()
         {
-            if (Phase != RunPhase.Combat || !Player || !Player.State.IsAlive) return;
+            if (Phase != RunPhase.Combat || !Player || (!Player.State.IsAlive&&!Codice.Multiplayer.LanSession.Host)) return;
+            if(Codice.Multiplayer.LanSession.Host)Codice.Multiplayer.LanSession.Instance.ReviveTeam();
             GoldPickup.CollectRemaining(Player);
             if (RoundElapsed < 180) { Player.State.AddGold(100); Notice?.Invoke("¡Bono de Rapidez +100 Oro!"); Debug.Log("Bono de rapidez: +100 oro."); }
             SetPhase(RunPhase.Cleared);
@@ -90,20 +92,23 @@ namespace Codice.Mechanics
         IEnumerator NextDungeonRound()
         {
             yield return new WaitForSeconds(3);
-            if (Phase != RunPhase.Cleared || !Player || !Player.State.IsAlive) yield break;
+            if (Phase != RunPhase.Cleared || !Player || (!Player.State.IsAlive&&!Codice.Multiplayer.LanSession.Host)) yield break;
             Level++; BeginRound();
         }
         public bool Travel()
         {
+            if(Codice.Multiplayer.LanSession.Client)return false;
             if (transition || Phase != RunPhase.Cleared || !scene || !Player || !Player.State.IsAlive) return false;
             string destination = RoundRules.SceneForRound(Level + 1);
             if (!Application.CanStreamedLevelBeLoaded(destination)) { Debug.LogError("Falta escena en Build Settings: " + destination); return false; }
+            if(Codice.Multiplayer.LanSession.Host)Codice.Multiplayer.LanSession.Instance.SaveTeam();
             snapshot = Player.State.Capture(); Level++; transition = true; SetPhase(RunPhase.Travelling);
             SceneManager.LoadSceneAsync(destination, LoadSceneMode.Single);
             return true;
         }
         void OnDeath()
         {
+            if(Codice.Multiplayer.LanSession.Host&&Codice.Multiplayer.LanSession.Instance.AnyAlive)return;
             StopAllCoroutines(); SetPhase(RunPhase.Defeated);
             Player.GetComponent<PlayerMechanics>()?.Cancel();
             if (scene.arena && scene.arena.ActiveBoss) scene.arena.ActiveBoss.SetPaused(true);
@@ -112,17 +117,22 @@ namespace Codice.Mechanics
         }
         public bool RestartRun()
         {
+            if(Codice.Multiplayer.LanSession.Client)return false;
             if ((Phase != RunPhase.Defeated && Phase != RunPhase.Victory) || transition) return false;
             Time.timeScale=1;
+            if(Codice.Multiplayer.LanSession.Host)Codice.Multiplayer.LanSession.Instance.ResetTeam();
             transition = true; snapshot = null; Level = 1; TotalKills=0; Elapsed = RoundElapsed = 0;
             SceneManager.LoadSceneAsync(RoundRules.SceneForRound(1), LoadSceneMode.Single); return true;
         }
         public bool RestartLevel()
         {
+            if(Codice.Multiplayer.LanSession.Client)return false;
             if(transition||string.IsNullOrEmpty(checkpoint)||(Phase!=RunPhase.Defeated&&Phase!=RunPhase.Cleared))return false;
             StopAllCoroutines();transition=true;snapshot=checkpoint;Level=checkpointLevel;Elapsed=checkpointElapsed;RoundElapsed=0;Time.timeScale=1;
             SetPhase(RunPhase.Travelling);SceneManager.LoadSceneAsync(checkpointScene,LoadSceneMode.Single);return true;
         }
+        public void CheckTeamDefeat(){if(Codice.Multiplayer.LanSession.Host&&!Codice.Multiplayer.LanSession.Instance.AnyAlive)OnDeath();}
+        public void ApplyLan(RunScene context,int level,RunPhase phase,float elapsed,float roundTime,int kills){scene=context;Level=level;Phase=phase;Elapsed=elapsed;RoundElapsed=roundTime;TotalKills=kills;Changed?.Invoke();}
         void SetPhase(RunPhase phase) { Phase = phase; Changed?.Invoke(); }
         public void RegisterKill(){TotalKills++;Changed?.Invoke();}
         void SpawnLoot()
@@ -134,7 +144,7 @@ namespace Codice.Mechanics
             for (int i = 0; i < scene.lootMarkers.Length; i++)
             {
                 if (i % 2 == 0) Player.GetComponent<PlayerCombat>().CreatePickup(new WeaponInstance((WeaponKind)UnityEngine.Random.Range(0, 10), Mathf.Clamp(2 + (Level - 1) / 5, 2, 4)), scene.lootMarkers[i].position);
-                else LootPickup.Create(scene.lootMarkers[i].position, LootKind.Passive, 1);
+                else LootPickup.Create(scene.lootMarkers[i].position, i%6==1?LootKind.Arrows:i%6==3?LootKind.Shuriken:LootKind.Passive, i%6==5?1:8);
             }
         }
     }

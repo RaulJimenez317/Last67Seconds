@@ -4,10 +4,13 @@ using UnityEngine.InputSystem;
 
 namespace Codice.Mechanics
 {
-    public enum LootKind { Ammunition, Passive }
+    public enum LootKind { Ammunition, Passive, Arrows, Shuriken }
     public sealed class LootPickup : MonoBehaviour, IPlayerInteractable
     {
         public LootKind kind;
+        public bool IsAmmo => kind != LootKind.Passive;
+        public bool Supports(WeaponInstance weapon)=>weapon!=null&&(kind==LootKind.Ammunition||kind==LootKind.Arrows&&weapon.kind==WeaponKind.Bow&&!weapon.shuriken||kind==LootKind.Shuriken&&weapon.shuriken);
+        public string AmmoName=>kind==LootKind.Arrows?"FLECHAS":kind==LootKind.Shuriken?"SHURIKEN":"MUNICIÓN";
         public PassiveKind passive;
         public int amount = 4;
         public bool respawns;
@@ -23,6 +26,8 @@ namespace Codice.Mechanics
             var library = Codice.Presentation.PresentationLibrary.Load();
             var prefab = library ? (kind == LootKind.Ammunition ? library.ammunitionModel :
                 library.passiveModels != null && (int)passive < library.passiveModels.Length ? library.passiveModels[(int)passive] : null) : null;
+            if(kind==LootKind.Arrows)prefab=Resources.Load<GameObject>("PlayerArrow");
+            if(kind==LootKind.Shuriken)prefab=Resources.Load<GameObject>("Shuriken");
             if (prefab)
             {
                 if (visual) Destroy(visual);
@@ -58,7 +63,7 @@ namespace Codice.Mechanics
         public bool TryCollect(PlayerCharacter player, int replaceSlot = -1)
         {
             if (consumed || !Available || !player || !player.State.IsAlive || player.ControlsBlocked || Time.timeScale == 0 || Vector3.Distance(transform.position, player.transform.position) > 3.5f) return false;
-            bool received = kind == LootKind.Ammunition ? player.State.AddAmmunition(amount) : player.State.EquipPassive(passive, replaceSlot);
+            bool received = IsAmmo ? player.State.AddAmmunition(amount,kind==LootKind.Arrows?1:kind==LootKind.Shuriken?2:0) : player.State.EquipPassive(passive, replaceSlot);
             if (!received) return false;
             Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Pickup);
             consumed = true; SetVisible(false);
@@ -84,7 +89,11 @@ namespace Codice.Mechanics
             float roll = Random.value;
             if (roll < .12f)
                 player.GetComponent<PlayerCombat>().CreatePickup(new WeaponInstance((WeaponKind)Random.Range(0, 10), Mathf.Clamp(2 + (RunDirector.Instance.Level - 1) / 5, 2, 4)), position + Vector3.up * .3f);
-            else if (roll < .45f) Create(position + Vector3.up * .4f, LootKind.Ammunition, 3);
+            else if (roll < .60f) {
+                var held=player.State.ActiveWeapon;
+                var type=held!=null&&held.shuriken?LootKind.Shuriken:held!=null&&held.kind==WeaponKind.Bow?LootKind.Arrows:LootKind.Ammunition;
+                Create(position+Vector3.up*.4f,type,type==LootKind.Ammunition?3:6);
+            }
         }
     }
 }

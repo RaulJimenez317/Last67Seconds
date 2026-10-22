@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0a6ebc1b55a345448cafac92d2577a4, type: 3}
+  m_Name: LanCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::Codice.Multiplayer.LanCatalog
+  entries:
+  - key: 'Enemy:Crossbowman:'
+    prefab: {fileID: 5089069596425857147, guid: 472b29b1d828cf840bb5b344b2e89f1c, type: 3}
+  - key: 'Enemy:Heavy:'
+    prefab: {fileID: 4323956953094313961, guid: 0d225cdf8413d0647895fe711a5725ee, type: 3}
+  - key: 'Enemy:Mage:'
+    prefab: {fileID: 189803317641740746, guid: 27cdc935688306b4c958ded1c59068f5, type: 3}
+  - key: 'Enemy:Swordsman:'
+    prefab: {fileID: 509160221900381739, guid: 9da02fa8ee561dc468d1dfb3f0722b87, type: 3}
+  - key: Boss:DemonLord
+    prefab: {fileID: 882165003827671778, guid: 62fbce5a3837ab64289f97c3914c153d, type: 3}
+  - key: Boss:GoblinKing
+    prefab: {fileID: 9076196974717635750, guid: fc439237f4b0bd644b9453ee671b4edf, type: 3}
+  - key: Boss:MonsterMutant
+    prefab: {fileID: 1589190548367686241, guid: 72dbaf17e90e2ce4593cdd374efc0c0e, type: 3}
+  - key: Boss:MonsterOrc
+    prefab: {fileID: 8239075943820506471, guid: 3c7eef2836e73d94982ddbee15eaf1f7, type: 3}
+  - key: Boss:OrkBerserker
+    prefab: {fileID: 8531477513615202168, guid: 26b5f8cce70a78f489745b70ead0c231, type: 3}
+  - key: Enemy:Crossbowman:Cazador renegado
+    prefab: {fileID: 1673637160933431578, guid: 2426c7443a13adf45b661580a747fcc1, type: 3}
+  - key: "Enemy:Heavy:MINIJEFE \u2022 Guardi\xE1n de la cripta"
+    prefab: {fileID: 6914037390310197695, guid: a7eeb441aa2a47b41b9ad2149c26f432, type: 3}
+  - key: "Enemy:Heavy:Guardi\xE1n b\xE1rbaro"
+    prefab: {fileID: 3398154493782789923, guid: eb3d31540d2113a40bacc67eaeea5ca6, type: 3}
+  - key: Enemy:Mage:Hechicero del abismo
+    prefab: {fileID: 4011108092881400387, guid: 9d5dddc51f408924bbb9c0b1560ef92b, type: 3}
+  - key: Enemy:Swordsman:Baba de mazmorra
+    prefab: {fileID: 8380857269744979717, guid: 9ac7cd791b890f04990b1c7da369871e, type: 3}
+  - key: Enemy:Swordsman:Saqueador de la cripta
+    prefab: {fileID: 7807406056669717016, guid: f071f34ae63b6154dbbfe6eacf668c89, type: 3}
+  - key: Enemy:Heavy:Tortuga acorazada
+    prefab: {fileID: 1373499912773311201, guid: 5d07c2a242729da40b1d60a368a69312, type: 3}
+  - key: Vfx:Impact
+    prefab: {fileID: 8701880418738843831, guid: 1420bb9885ed17d47925e6610e0c189a, type: 3}
+  - key: Vfx:Footstep dust
+    prefab: {fileID: 8229131354266074381, guid: 1b3bf8b6aaabe704aae9878b01a0b3c9, type: 3}
+  - key: Vfx:Explosion
+    prefab: {fileID: 3483167809352569295, guid: f33d43daf2d54ac40bd4a7c1c1b41fc4, type: 3}
+  - key: Vfx:Muzzle flash
+    prefab: {fileID: 3142319861781031627, guid: 5c677fd2f9e00f248ba585cfb75d336f, type: 3}
+  - key: Vfx:BloodImpact
+    prefab: {fileID: 6272116072318430558, guid: 5653e5aebfc618f41b4368f9203f1031, type: 3}
+  - key: Vfx:GunSmoke
+    prefab: {fileID: 5726469879118295598, guid: ea15ba35b559c864e9e0c7d5d8b0b28c, type: 3}
+  - key: Vfx:StaffProjectile
+    prefab: {fileID: 7951562869243006252, guid: 4d4d20227e0d0f542a9c8f0b274451ae, type: 3}
+  - key: Vfx:SwordSparks
+    prefab: {fileID: 6446323357257136046, guid: 54df5cfcf24cb4949a1d69132b5d3777, type: 3}
+  - key: Vfx:MagicCast
+    prefab: {fileID: 5931106303272965287, guid: 1f1194045bc7d434385546bd4d6afff9, type: 3}
+  - key: Vfx:Ammunition
+    prefab: {fileID: 3219499559851740496, guid: 5453ae74762702544b14be935a3b8c5d, type: 3}

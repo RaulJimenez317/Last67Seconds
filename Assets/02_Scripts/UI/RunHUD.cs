@@ -21,6 +21,8 @@ namespace Codice.UI
         public RunScene Context {get;private set;}
         public PlayerCharacter Player => Context ? Context.player : null;
         public GhostBar PlayerHealth {get;private set;}
+        public GhostBar PlayerMana {get;private set;}
+        GhostBar posture; Image postureLeft,postureRight;
         public GhostBar BossHealth {get;private set;}
         public Image UltimateMeter {get;private set;}
         public bool Paused {get;private set;}
@@ -31,12 +33,14 @@ namespace Codice.UI
         public Canvas Canvas {get;private set;}
         RunDirector director;
         PlayerMechanics mechanics;
+        Text spellChoices;
         Text healthTitle,status,gold,timers,level,progressText,bossTitle,bossAttack,ultimateText,ammo,dash,banner,crosshair,hitmarker,cursorHint;
         Image progress,vignette,reload,ammoReload;
         int displayedSlot=-1;float switchTime;
         readonly Image[] slots=new Image[2], icons=new Image[2];
         readonly Text[] slotLabels=new Text[2], passiveLabels=new Text[3];
         readonly Image[] passiveFrames=new Image[3];
+        RectTransform spellPanel;
         RectTransform healthPanel,hotbar,bossPanel,bannerPanel;
         readonly Queue<string> notices=new Queue<string>();
         float bannerEnds,oldHealth,damagePulse,goldPulse,hitEnds;
@@ -60,6 +64,13 @@ namespace Codice.UI
             PlayerHealth=GhostBar.Create(healthPanel,"Player HP",14,43,340,34);
             status=UIWidgets.Label(healthPanel,"Status",18,83,330,42,16);
             gold=UIWidgets.Label(healthPanel,"Gold",18,121,330,29,23,ProceduralUISprites.Gold);
+            PlayerMana=GhostBar.Create(transform,"Maná",46,192,340,36);PlayerMana.Fill.color=ProceduralUISprites.Cyan;PlayerMana.Caption.fontSize=16;
+            spellPanel=Panel("Spell book",32,232,370,155);
+            spellChoices=UIWidgets.Label(spellPanel,"Spell choices",18,12,334,133,18,Color.white);
+            posture=GhostBar.Create(transform,"Postura",-170,95,340,32);Anchor((RectTransform)posture.transform,.5f,.5f);posture.Fill.color=ProceduralUISprites.Gold;posture.Caption.fontSize=14;
+            postureLeft=UIWidgets.Filled(posture.transform,"Left posture",6,5,162,22,ProceduralUISprites.Gold);postureLeft.fillOrigin=1;
+            postureRight=UIWidgets.Filled(posture.transform,"Right posture",172,5,162,22,ProceduralUISprites.Gold);postureRight.fillOrigin=0;
+            UIWidgets.Image(posture.transform,"Center crest",165,1,10,30,ProceduralUISprites.Gold,"diamond");posture.Caption.transform.SetAsLastSibling();
             var timePanel=Panel("Run clock",-348,30,316,142);Anchor(timePanel,1,1);
             timers=UIWidgets.Label(timePanel,"Clocks",18,14,280,115,21);
             var round=Panel("Round",-265,25,530,94);Anchor(round,.5f,1);
@@ -145,8 +156,10 @@ namespace Codice.UI
         {
             if(!Player||!PlayerHealth)return;
             var state=Player.State;var weapon=state.ActiveWeapon;
-            healthTitle.text="CÓDICE DE CENIZA  /  "+new[]{"GUERRERO","TANQUE","ARQUERO"}[(int)state.Class];
+            healthTitle.text="CÓDICE DE CENIZA  /  "+new[]{"GUERRERO","TANQUE","ARQUERO","MAGO","SHINOBI"}[(int)state.Class];
             PlayerHealth.Set(state.Health,state.MaxHealth);
+            PlayerMana.gameObject.SetActive(state.HasStaff);PlayerMana.Set(state.Mana,state.MaxMana);PlayerMana.Caption.text=$"MANÁ {state.Mana:0}/{state.MaxMana:0} • {StaffSpells.Cost(state.SelectedSpell):0} por hechizo";
+            var guard=Player.GetComponent<ShinobiGuard>();posture.gameObject.SetActive(guard&&state.Class==PlayerClass.Shinobi&&guard.ShowPosture);if(guard){posture.Set(100-guard.Posture,100,guard.Broken?"POSTURA ROTA":guard.RecentPerfect?"DESVÍO PERFECTO":"POSTURA");posture.Fill.color=guard.Broken?ProceduralUISprites.Crimson:guard.RecentPerfect?Color.white:ProceduralUISprites.Gold;postureLeft.fillAmount=postureRight.fillAmount=(100-guard.Posture)/100;postureLeft.color=postureRight.color=posture.Fill.color;posture.Fill.enabled=false;posture.Ghost.enabled=false;}
             status.text=Player.IsStaggered?"DERRIBADO":Player.MovementMultiplier<1?"LODO • Ralentizado −35%":mechanics&&mechanics.Invulnerable?"INVULNERABLE":mechanics&&mechanics.ShadowStep?"PASO SOMBRÍO":mechanics&&mechanics.ShieldActive?"ESCUDO FRONTAL • −50%":"";
             gold.text=$"•  {state.Gold:N0}   ORO";
             if(displayedSlot!=state.ActiveSlot){displayedSlot=state.ActiveSlot;switchTime=Time.unscaledTime;}
@@ -156,25 +169,33 @@ namespace Codice.UI
                 slots[i].color=w==null?ProceduralUISprites.Ink:ProceduralUISprites.Tier(w.tier)*(active?1:.65f);
                 slots[i].transform.localScale=Vector3.Lerp(slots[i].transform.localScale,Vector3.one*(active?1.15f+Mathf.Sin(Mathf.Clamp01((Time.unscaledTime-switchTime)/.3f)*Mathf.PI)*.12f:1),1-Mathf.Exp(-15*Time.unscaledDeltaTime));
                 slots[i].rectTransform.anchoredPosition=new Vector2(380+i*235,-78+(active?10:0));
-                icons[i].enabled=w!=null;if(w!=null)icons[i].sprite=ProceduralUISprites.Weapon(w.kind);
-                slotLabels[i].text=w==null?$"[{i+1}]  VACÍO":$"[{i+1}] {UIWidgets.WeaponName(w.kind)}\nT{w.tier}  /  {w.Damage:0} DAÑO\n{w.AttacksPerSecond:0.00}/s  [Tab]";
+                icons[i].enabled=w!=null;if(w!=null)icons[i].sprite=ProceduralUISprites.Weapon(w);
+                slotLabels[i].text=w==null?$"[{i+1}]  VACÍO":$"[{i+1}] {UIWidgets.WeaponName(w)}\nT{w.tier}  /  {w.Damage:0} DAÑO\n{w.AttacksPerSecond:0.00}/s  [Tab]";
             }
             for(int i=0;i<3;i++){bool exists=i<state.PassiveCount;passiveLabels[i].text="["+new[]{"T","Y","U"}[i]+"]\n"+(exists?UIWidgets.Passive(state.GetPassive(i))+"\n"+(state.PassiveTime(i)>0?$"{state.PassiveTime(i):0}s":state.PassiveWait(i)>0?$"Espera {state.PassiveWait(i):0}s":"LISTA"):"—");passiveFrames[i].color=exists?ProceduralUISprites.Cyan:ProceduralUISprites.Ink;}
             float charge=mechanics?mechanics.Charge:0;UltimateMeter.fillAmount=charge/100;
             UltimateMeter.color=charge>=100?Color.Lerp(ProceduralUISprites.Cyan,ProceduralUISprites.Gold,(Mathf.Sin(Time.unscaledTime*6)+1)/2):ProceduralUISprites.Cyan;
-            ultimateText.text=mechanics&&mechanics.UltimateActive?"ACTIVO":$"{charge:0}%\n[Q]";
-            specialName.text=weapon==null?"":UIWidgets.Special(weapon.kind)+"\n[Q]";
-            ammo.text=weapon!=null&&weapon.Capacity>0?$"MUNICIÓN   {weapon.ammunition} / {weapon.Capacity}"+(weapon.kind==WeaponKind.Musket?$"  •  Reserva {weapon.reserveAmmunition}  [R]":"  •  Regeneración "+(state.HasPassive(PassiveKind.Frenzy)?"1.125 s":"1.5 s")):"";
+            ultimateText.text=mechanics&&mechanics.UltimateActive?"ACTIVO":$"{Mathf.FloorToInt(charge)}%\n[Q]";
+            specialName.text=weapon==null?"":(weapon.katana?"Tajos de Sangre":weapon.shuriken?"Tormenta de Shuriken":UIWidgets.Special(weapon.kind))+"\n[Q]";
+            ammo.text=weapon!=null&&weapon.Capacity>0?$"{(weapon.shuriken?"SHURIKEN":weapon.kind==WeaponKind.Bow?"FLECHAS":"MUNICIÓN")}   {weapon.ammunition} / {weapon.Capacity}"+(weapon.kind==WeaponKind.Musket?$"  •  Reserva {weapon.reserveAmmunition}  [R]":"  •  Recoge suministros") : "";
             var combat=Player.GetComponent<PlayerCombat>();
+            spellPanel.gameObject.SetActive(weapon!=null&&weapon.kind==WeaponKind.Staff);
+            if(weapon!=null&&weapon.kind==WeaponKind.Staff)
+            {
+                spellChoices.text="HECHIZOS • Clic izquierdo para lanzar\n";
+                for(int i=0;i<4;i++){var s=(StaffSpell)i;spellChoices.text+=(s==state.SelectedSpell?"<color=#FFD978>> ":"  ")+"["+(i+1)+"] "+StaffSpells.Label(s)+" • "+StaffSpells.Cost(s)+" maná"+(s==state.SelectedSpell?"</color>":"")+"\n";}
+                ammo.text=$"{StaffSpells.Label(state.SelectedSpell)} • Espera {Player.GetComponent<StaffSpells>().Remaining:0.0}s • [Tab] Arma • [Q] Especial";
+            }
+            if(state.DualWield)ammo.text="DUALES • +30% velocidad / +25% daño";
             if(combat&&combat.IsReloading)ammo.text+="  •  RECARGANDO";
-            reload.fillAmount=combat&&combat.IsReloading?combat.ReloadFraction:weapon!=null&&weapon.kind==WeaponKind.Bow&&weapon.ammunition<weapon.Capacity?Mathf.Clamp01(weapon.reloadProgress/(state.HasPassive(PassiveKind.Frenzy)?1.125f:1.5f)):0;
+            reload.fillAmount=combat&&combat.IsReloading?combat.ReloadFraction:0;
             ammoReload.fillAmount=reload.fillAmount;
             crosshair.text=weapon==null?"·":weapon.kind==WeaponKind.Bow?"○":weapon.kind==WeaponKind.Musket?"┼":weapon.Ranged?"○":"·";
             dash.text="SALTO [Espacio] • DASH [Shift]\n"+(Player.DashCooldown<=0?"• LISTO":$"○ {Player.DashCooldown:0.0}s")+(state.HasPassive(PassiveKind.MercuryBoots)?(Player.SecondDashCooldown<=0?"   • LISTO":$"   ○ {Player.SecondDashCooldown:0.0}s"):"");
             if(director)
             {
                 timers.text=$"PARTIDA   {UIWidgets.Clock(director.Elapsed)}\nRONDA     {UIWidgets.Clock(director.RoundElapsed)}\n<size=16><color={(director.RoundElapsed<180?"#F5D76E":"#777C91")}>• RAPIDEZ +100 • MENOS DE 03:00</color></size>";
-                level.text=$"RONDA {director.Level:00} / {RoundRules.FinalRound}   •   {(RoundRules.IsFinal(director.Level)?"ARENA FINAL":RoundRules.IsColiseumRound(director.Level)?"COLISEO":"CALABOZO")}";
+                level.text=$"RONDA {director.Level:00} / {RoundRules.FinalRound}   •   {RoundRules.MapTitle(director.Level)}";
                 if(Context.UsesDungeonEncounter(director.Level)){int total=Context.dungeon.Total;progress.fillAmount=total>0?(float)Context.dungeon.Defeated/total:0;progressText.text=$"{total-Context.dungeon.Defeated} / {total} ENEMIGOS  •  MERCADER {(total+1)/2}/{total}  •  JEFE CADA 5";}
                 else{progress.fillAmount=Context.arena&&Context.arena.Completed?1:0;progressText.text="ENCUENTRO DE JEFE";}
                 if(director.Phase==RunPhase.Shop)progressText.text=$"MERCADER • [E] COMPRAR • [ENTER] CONTINUAR • {director.ShopRemaining:0}s";

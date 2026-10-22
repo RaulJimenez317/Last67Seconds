@@ -38,13 +38,14 @@ namespace Codice.Characters
         void Awake()
         {
             controller = GetComponent<CharacterController>();
-            initialClass = Codice.UI.RunNavigation.SelectedClass;
+            initialClass = GetComponent<Codice.Multiplayer.LanAvatar>()?.playerClass ?? Codice.UI.RunNavigation.SelectedClass;
             state.Initialize(initialClass); initialized = true;
-            ApplyVisual(); state.Died += OnDeath;
+            if(!GetComponent<StaffSpells>())gameObject.AddComponent<StaffSpells>();
+            ApplyVisual(); if(initialClass==PlayerClass.Shinobi&&!GetComponent<ShinobiGuard>())gameObject.AddComponent<ShinobiGuard>(); state.Died += OnDeath;
             Codice.Presentation.ActorPresentation.Install(gameObject);
             mouseSensitivity = PlayerPrefs.GetFloat("Codice.Sensitivity", mouseSensitivity);
         }
-        void Start() { CaptureCursor(true); }
+        void Start() { if(!Codice.Multiplayer.LanAvatar.IsRemote(this))CaptureCursor(true); }
         void OnDestroy() { state.Died -= OnDeath; }
         void OnDisable() { if (merchant) merchant.CloseShop(); CaptureCursor(false); }
         void OnApplicationFocus(bool focused) { if (!focused) CaptureCursor(false); }
@@ -57,15 +58,27 @@ namespace Codice.Characters
         void ApplyVisual()
         {
             if (classVisuals == null) return;
+            if(initialClass==PlayerClass.Mage && classVisuals.Length<4)
+            {
+                var mage=Resources.Load<GameObject>("MageVisual");
+                if(mage){Array.Resize(ref classVisuals,4);classVisuals[3]=Instantiate(mage,transform,false);}
+            }
+            if(initialClass==PlayerClass.Shinobi&&classVisuals.Length<5){var ninja=Resources.Load<GameObject>("ShinobiVisual");if(ninja){Array.Resize(ref classVisuals,5);classVisuals[4]=Instantiate(ninja,transform,false);}}
             for (int i = 0; i < classVisuals.Length; i++)
-                if (classVisuals[i]) classVisuals[i].SetActive(i == (int)initialClass);
+                if (classVisuals[i]) classVisuals[i].SetActive(i == (initialClass==PlayerClass.Mage&&classVisuals.Length<4?0:(int)initialClass));
         }
         void Update()
         {
+            if(Codice.Multiplayer.LanSession.Client){Codice.Multiplayer.LanSession.Instance.ClientControls(this);return;}
+            if(Codice.Multiplayer.LanAvatar.IsRemote(this)){
+                var avatar=GetComponent<Codice.Multiplayer.LanAvatar>();
+                if(!ControlsBlocked&&state.IsAlive){state.TickMana(Time.deltaTime);state.TickPassives(Time.deltaTime);avatar.Motor(this,Time.deltaTime);if(avatar.attack)GetComponent<PlayerCombat>().TryAttack();}return;
+            }
+            if(Codice.Multiplayer.LanSession.Active&&Codice.UI.RunHUD.Instance&&Codice.UI.RunHUD.Instance.Paused)return;
             if (Codice.UI.RunNavigation.Loading) return;
             if (!state.IsAlive || Time.timeScale == 0) return;
             if (!ControlsBlocked && !(Codice.UI.RunHUD.Instance && Codice.UI.RunHUD.Instance.ResultsVisible))
-            { state.TickAmmunition(Time.deltaTime); state.TickPassives(Time.deltaTime); }
+            { state.TickMana(Time.deltaTime); state.TickAmmunition(Time.deltaTime); state.TickPassives(Time.deltaTime); }
             var keys = Keyboard.current; var mouse = Mouse.current;
             if (keys == null || mouse == null || !view) return;
             if (merchant)
@@ -103,9 +116,14 @@ namespace Codice.Characters
             var collision = controller.Move(((IsDashing ? dashDirection * 18 : IsStaggered ? Vector3.zero : direction * state.MoveSpeed * MovementMultiplier * specialSpeed) + Vector3.up * verticalSpeed) * Time.deltaTime);
             if ((collision & CollisionFlags.Above) != 0 && verticalSpeed > 0) verticalSpeed = 0;
             if (transform.position.y < -20) state.Damage(state.MaxHealth);
-            if (keys.digit1Key.wasPressedThisFrame) state.SelectWeapon(0);
+            if (state.ActiveWeapon?.kind == WeaponKind.Staff)
+            {
+                int spell=keys.digit1Key.wasPressedThisFrame?0:keys.digit2Key.wasPressedThisFrame?1:keys.digit3Key.wasPressedThisFrame?2:keys.digit4Key.wasPressedThisFrame?3:-1;
+                if(spell>=0)state.SelectSpell(spell);
+            }
+            else if (keys.digit1Key.wasPressedThisFrame) state.SelectWeapon(0);
             else if (keys.digit2Key.wasPressedThisFrame) state.SelectWeapon(1);
-            else if (keys.tabKey.wasPressedThisFrame || mouse.scroll.ReadValue().y != 0) state.SelectWeapon(1 - state.ActiveSlot);
+            if (keys.tabKey.wasPressedThisFrame || mouse.scroll.ReadValue().y != 0) state.SelectWeapon(1 - state.ActiveSlot);
             if (keys.eKey.wasPressedThisFrame) TryInteract();
             if (!ControlsBlocked && keys.qKey.wasPressedThisFrame) SpecialRequested?.Invoke();
         }
@@ -131,20 +149,26 @@ namespace Codice.Characters
         public bool TryActivatePassive(int slot)
         {
             if (ControlsBlocked || IsStaggered || Time.timeScale == 0 ||
-                (Codice.UI.RunHUD.Instance && (Codice.UI.RunHUD.Instance.ResultsVisible || Codice.UI.RunHUD.Instance.Paused))) return false;
+                (Codice.UI.RunHUD.Instance && (Codice.UI.RunHUD.Instance.ResultsVisible || (!Codice.Multiplayer.LanAvatar.IsRemote(this) && Codice.UI.RunHUD.Instance.Paused)))) return false;
             bool activated=state.ActivatePassive(slot);
             if(activated)Codice.Presentation.GameAudio.Play(Codice.Presentation.SoundCue.Power);
             return activated;
         }
         public void ReceiveDamage(DamageInfo hit)
         {
+            if(Codice.Multiplayer.LanSession.Client)return;
+            if(Codice.Multiplayer.LanSession.Active&&hit.source&&hit.source.GetComponentInParent<PlayerCharacter>())return;
             if (IsDashing || !state.IsAlive) return;
             var mechanics = GetComponent<Codice.Mechanics.PlayerMechanics>();
             if (mechanics && mechanics.Invulnerable) return;
             float originalDamage=hit.amount;
+            var guard=GetComponent<ShinobiGuard>();if(guard)hit.amount=guard.Resolve(hit);
             if (mechanics) hit.amount = mechanics.ModifyIncoming(hit);
             if(hit.amount>0)Codice.Presentation.GameAudio.Play(mechanics&&mechanics.ShieldActive&&hit.amount<originalDamage?Codice.Presentation.SoundCue.Block:Codice.Presentation.SoundCue.Hurt);
-            if (state.Damage(hit.amount) && mechanics) mechanics.AfterDamage(hit);
+            float healthBefore=state.Health;
+            bool damaged=state.Damage(hit.amount);
+            CombatFeedback.Report(this,hit,Mathf.Max(0,healthBefore-state.Health),hit.amount<originalDamage);
+            if (damaged && mechanics) mechanics.AfterDamage(hit);
         }
         public void RestoreRunState(string snapshot)
         { state.Restore(snapshot); initialClass = state.Class; ApplyVisual(); }
@@ -173,11 +197,12 @@ namespace Codice.Characters
             return true;
         }
         void OnDeath() { if (merchant) merchant.CloseShop(); ControlsBlocked = true; CaptureCursor(false); }
-        static void CaptureCursor(bool capture)
-        { Cursor.lockState = capture ? CursorLockMode.Locked : CursorLockMode.None; Cursor.visible = !capture; }
+        void CaptureCursor(bool capture)
+        { if(Codice.Multiplayer.LanAvatar.IsRemote(this))return; Cursor.lockState = capture ? CursorLockMode.Locked : CursorLockMode.None; Cursor.visible = !capture; }
 #if UNITY_EDITOR
         [ContextMenu("Prueba / Dar 500 oro (solo Play)")]
         void GrantTestGold() { if (Application.isPlaying) state.AddGold(500); }
 #endif
     }
 }
+

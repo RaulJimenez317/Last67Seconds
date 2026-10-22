@@ -23,10 +23,12 @@ namespace Codice.Mechanics
         System.Collections.IEnumerator Start()
         {
             yield return null;
+            if(Codice.Multiplayer.LanSession.Client){TreasureChest.InstallInScene();Codice.Multiplayer.LanSession.Instance.EnterClient(this);yield break;}
             TreasureChest.InstallInScene();
             if (!RunDirector.Instance) new GameObject("Run director").AddComponent<RunDirector>();
             Codice.UI.RunHUD.Install(this);
             RunDirector.Instance.Enter(this);
+            if(Codice.Multiplayer.LanSession.Host)Codice.Multiplayer.LanSession.Instance.EnterHost(this);
         }
     }
 }

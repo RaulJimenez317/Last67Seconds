@@ -38,14 +38,14 @@ namespace Codice.UI
             }
             if(item is LootPickup p)
             {
-                if(p.kind==LootKind.Ammunition)return $"SUMINISTROS  /  +{p.amount} munición\nTocar / [E] recoger con el arma que necesita munición";
+                if(p.IsAmmo)return $"{p.AmmoName}  /  +{p.amount}\nTocar / [E] recoger";
                 string text=UIWidgets.Passive(p.passive)+"\nTocar / [E] recoger • T/Y/U activar (10 s)";
                 if(Player.State.PassiveCount==3){text="REEMPLAZAR POR: "+UIWidgets.Passive(p.passive);for(int i=0;i<3;i++)text+="\n["+new[]{"Shift","Ctrl","Alt"}[i]+" + E] "+UIWidgets.Passive(Player.State.GetPassive(i));}
                 return text;
             }
             return item is RunPortal?"PORTAL ABIERTO\n[E] Viajar al "+RoundRules.SceneForRound(RunDirector.Instance.Level+1):"";
         }
-        static string CompareWeapon(WeaponInstance w)=>w==null?"Vacía":$"<color=#{ColorUtility.ToHtmlStringRGB(ProceduralUISprites.Tier(w.tier))}>{UIWidgets.WeaponName(w.kind)} T{w.tier}</color>\n{w.Damage:0} daño • {w.AttacksPerSecond:0.00}/s\n{UIWidgets.Special(w.kind)}";
+        static string CompareWeapon(WeaponInstance w)=>w==null?"Vacía":$"<color=#{ColorUtility.ToHtmlStringRGB(ProceduralUISprites.Tier(w.tier))}>{UIWidgets.WeaponName(w)} T{w.tier}</color>\n{w.Damage:0} daño • {w.AttacksPerSecond:0.00}/s\n{UIWidgets.Special(w.kind)}";
         void ScanWorld()
         {
             foreach(var enemy in FindObjectsByType<BasicEnemy>(FindObjectsSortMode.None))if(enemy.IsAlive&&!worldBars.ContainsKey(enemy))worldBars.Add(enemy,WorldHealthBar.Create(enemy));
@@ -75,7 +75,7 @@ namespace Codice.UI
                 if(Context.portal&&Context.portal.Available)Waypoint(1,Context.portal.transform.position,"○ PORTAL",camera);
                 var active=Player.State.ActiveWeapon;
                 if(active!=null&&active.Capacity>0&&active.ammunition<=active.Capacity/3)
-                {LootPickup nearest=null;float best=float.MaxValue;foreach(var p in loot)if(p&&p.Available&&p.kind==LootKind.Ammunition){float d=(p.transform.position-Player.transform.position).sqrMagnitude;if(d<best){best=d;nearest=p;}}if(nearest)Waypoint(2,nearest.transform.position,"↑ MUNICIÓN",camera);}
+                {LootPickup nearest=null;float best=float.MaxValue;foreach(var p in loot)if(p&&p.Available&&p.IsAmmo&&p.Supports(active)){float d=(p.transform.position-Player.transform.position).sqrMagnitude;if(d<best){best=d;nearest=p;}}if(nearest)Waypoint(2,nearest.transform.position,"↑ MUNICIÓN",camera);}
             }
             for(int i=numbers.Count-1;i>=0;i--)
             {
@@ -128,7 +128,7 @@ namespace Codice.UI
         {
             if(!target){Destroy(gameObject);return;}
             float hp,max;string label="";
-            if(target is BasicEnemy enemy){hp=enemy.Health;max=enemy.MaxHealth;label=enemy.IsStunned?"* ATURDIDO":enemy.kind==EnemyKind.Heavy?(enemy.GuardBroken?"○ ESCUDO ROTO":"• ESCUDO"):"";}
+            if(target is BasicEnemy enemy){hp=enemy.Health;max=enemy.MaxHealth;label=enemy.IsStunned?"* ATURDIDO":enemy.miniboss?"GUARDIÁN • MINIJEFE":!string.IsNullOrEmpty(enemy.variantName)?enemy.variantName:enemy.kind==EnemyKind.Heavy?(enemy.GuardBroken?"○ ESCUDO ROTO":"• ESCUDO"):"";}
             else if(target is DestructiblePillar pillar){hp=pillar.Health;max=pillar.maxHealth;label="PILAR";}else return;
             var collider=target.GetComponent<Collider>();Vector3 position=collider?new Vector3(collider.bounds.center.x,collider.bounds.max.y+.35f,collider.bounds.center.z):target.transform.position+Vector3.up*2.5f;
             transform.position=position;transform.rotation=camera.transform.rotation;

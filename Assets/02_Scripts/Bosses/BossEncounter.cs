@@ -10,9 +10,9 @@ namespace Codice.Bosses
     public sealed class BossEncounter : MonoBehaviour
     {
         public BossCharacter goblinPrefab, demonPrefab;
-        [Tooltip("Pool used for rounds 5, 10 and 15. If empty, the original two bosses are used.")]
+        [Tooltip("Pool used for rounds 5, 10, 15 and 20. If empty, the original two bosses are used.")]
         public BossCharacter[] bossPrefabs;
-        [Tooltip("Only used in the FST final arena on round 20.")]
+        [Tooltip("Only used in the FST final arena on the final round.")]
         public BossCharacter finalBossPrefab;
         public PlayerCharacter player;
         public Transform spawnPoint;
@@ -23,7 +23,7 @@ namespace Codice.Bosses
         public event Action<BossCharacter> Spawned;
         public BossCharacter ActiveBoss { get; private set; }
         public bool Completed { get; private set; }
-        public bool Defeated => player && !player.State.IsAlive;
+        public bool Defeated => Codice.Multiplayer.LanSession.Host?!Codice.Multiplayer.LanSession.Instance.AnyAlive:player && !player.State.IsAlive;
         public bool Restarting { get; private set; }
         Vector3 playerStart;
         Quaternion playerRotation;

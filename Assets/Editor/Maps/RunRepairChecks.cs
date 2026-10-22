@@ -137,7 +137,7 @@ public static class RunRepairChecks
             await Task.Delay(500);
             Check(GameObject.Find("Main Menu/Test round")!=null||Object.FindObjectsByType<TMPro.TextMeshProUGUI>(FindObjectsSortMode.None).Any(t=>t.name=="Test round"&&t.gameObject.activeInHierarchy),"round selector visible on home");
             RunNavigation.StartGame(PlayerClass.Warrior,1);
-            for(int round=1;round<=20;round++)
+            for(int round=1;round<=RoundRules.FinalRound;round++)
             {
                 int expected=round;
                 await Until(()=>RunDirector.Instance&&RunDirector.Instance.Level==expected&&RunDirector.Instance.CombatActive&&RunHUD.Instance&&RunHUD.Instance.Context.gameObject.scene.name==RoundRules.SceneForRound(expected),"round "+round);
@@ -162,7 +162,7 @@ public static class RunRepairChecks
                         await Task.Delay(50);
                     }
                 }
-                Check(run.Phase==(round==20?RunPhase.Victory:RunPhase.Cleared),"round "+round+" completed");
+                Check(run.Phase==(RoundRules.IsFinal(round)?RunPhase.Victory:RunPhase.Cleared),"round "+round+" completed");
                 if(RoundRules.OpensPortalAfter(round)){Check(context.portal&&context.portal.Available,"portal round "+round);Check(run.Travel(),"travel round "+round);}
             }
             Check(RunDirector.Instance.RestartRun(),"restart after victory");
@@ -178,7 +178,7 @@ public static class RunRepairChecks
         {
             Application.runInBackground=true;
             await Task.Delay(500);
-            foreach(int round in new[]{5,6,10,11,15,16,19,20})
+            foreach(int round in new[]{5,6,10,11,15,16,20,21,24,25})
             {
                 RunNavigation.StartGame(PlayerClass.Warrior,round);
                 await Until(()=>!RunNavigation.Loading&&RunDirector.Instance&&RunDirector.Instance.Level==round&&RunDirector.Instance.CombatActive,"selected round "+round);
@@ -197,7 +197,7 @@ public static class RunRepairChecks
                 player.GetComponent<CharacterController>().enabled=true;
                 var prefab=AssetDatabase.LoadAssetAtPath<BossCharacter>("Assets/01_Prefabs/Bosses/"+name+".prefab");
                 Check(NavMesh.SamplePosition(Vector3.zero,out var spawn,5,NavMesh.AllAreas),name+" spawn on navmesh");
-                var boss=Object.Instantiate(prefab,spawn.position,Quaternion.identity);boss.Initialize(player,name=="OrkBerserker"?20:5);
+                var boss=Object.Instantiate(prefab,spawn.position,Quaternion.identity);boss.Initialize(player,name=="OrkBerserker"?RoundRules.FinalRound:5);
                 float hp=player.State.Health;
                 await Until(()=>player.State.Health<hp,name+" attack applies damage",12);
                 Check(player.State.IsAlive,name+" attack and player survive");

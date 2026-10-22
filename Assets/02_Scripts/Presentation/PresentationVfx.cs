@@ -7,9 +7,28 @@ namespace Codice.Presentation
         static readonly List<GameObject> live=new List<GameObject>();
         public static int ActiveCount {get{live.RemoveAll(x=>!x);return live.Count;}}
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void Reset()=>live.Clear();
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void Subscribe()
+        {
+            Codice.Characters.CombatFeedback.Resolved -= Damage;
+            Codice.Characters.CombatFeedback.Resolved += Damage;
+        }
+        static void Damage(Codice.Characters.CombatFeedback.Result hit)
+        {
+            if(hit.amount<=0 || !hit.target)return;
+            if(!(hit.target is Codice.Characters.PlayerCharacter) && !(hit.target is Codice.Enemies.BasicEnemy) && !(hit.target is Codice.Bosses.BossCharacter))return;
+            var l=PresentationLibrary.Load();
+            if(l)Spawn(l.blood,hit.position,Quaternion.identity,.55f,2.5f);
+        }
+        public static void SwordSwing(Vector3 point,Vector3 forward)
+        {var l=PresentationLibrary.Load();if(l)Spawn(l.swordSparks,point,Quaternion.LookRotation(forward),.2f,.6f);}
+        public static void MagicCast(Vector3 point,Vector3 forward)
+        {var l=PresentationLibrary.Load();if(l)Spawn(l.magicCast,point,Quaternion.LookRotation(forward),.2f,.6f);}
+        public static void GunSmoke(Vector3 point,Vector3 forward)
+        {var l=PresentationLibrary.Load();if(l)Spawn(l.gunSmoke,point,Quaternion.LookRotation(forward),1,1.8f);}
         static void Spawn(GameObject prefab,Vector3 point,Quaternion rotation,float scale,float lifetime)
         {
-            if(!prefab)return;live.RemoveAll(x=>!x);if(live.Count>=40)return;
+            if(!prefab)return;if(Codice.Multiplayer.LanSession.Host)Codice.Multiplayer.LanSession.Instance.EmitEffect(prefab.name,point,scale,lifetime);live.RemoveAll(x=>!x);if(live.Count>=40)return;
             var go=Object.Instantiate(prefab,point,rotation);go.transform.localScale*=scale;go.name="VFX • "+prefab.name;live.Add(go);
             foreach(var system in go.GetComponentsInChildren<ParticleSystem>()){var main=system.main;main.loop=false;main.stopAction=ParticleSystemStopAction.None;system.Play();}
             Object.Destroy(go,lifetime);

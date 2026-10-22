@@ -41,8 +41,9 @@ namespace Codice.UI
         {var image=Image(parent,text,x,y,w,h,ProceduralUISprites.Cyan,"frame");image.raycastTarget=true;var b=image.gameObject.AddComponent<Button>();b.targetGraphic=image;b.onClick.AddListener(action);var label=Label(image.transform,"Label",10,8,w-20,h-10,19);label.text=text;label.alignment=TextAlignmentOptions.Center;return b;}
         public static Image Filled(Transform parent,string name,float x,float y,float w,float h,Color color,bool radial=false)
         {var i=Image(parent,name,x,y,w,h,color,radial?"ring":"solid");i.type=UnityEngine.UI.Image.Type.Filled;i.fillMethod=radial?UnityEngine.UI.Image.FillMethod.Radial360:UnityEngine.UI.Image.FillMethod.Horizontal;i.fillOrigin=0;return i;}
+        public static string WeaponName(WeaponInstance w)=>w.katana?"Katana":w.shuriken?"Shuriken":WeaponName(w.kind);
         public static string WeaponName(WeaponKind k)=>new[]{"Espada","Hacha","Arco","Daga","Martillo","Lanza","Guadaña","Escudo","Báculo","Mosquete"}[(int)k];
-        public static string Special(WeaponKind k)=>new[]{"Danza de Acero","Hendidura Sísmica","Lluvia Perforante","Paso Sombrío","Pulso Gravitatorio","Empalamiento Imperial","Tajo Sangriento","Bastión Inmortal","Singularidad Arcana","Disparo Perforatitanes"}[(int)k];
+        public static string Special(WeaponKind k)=>new[]{"Gran Tajo","Hendidura Sísmica","Lluvia de Flechas","Ráfaga de Dagas","Impacto Sísmico","Empalamiento Imperial","Siega Circular","Bastión Inmortal","Torrente Arcano","Descarga de Pólvora"}[(int)k];
         public static string Passive(PassiveKind k)=>new[]{"Frenesí","Corazón Vampírico","Sobrecarga","Botas de Mercurio","Coraza de Espinas"}[(int)k];
         public static string Clock(float seconds)=>$"{(int)seconds/60:00}:{(int)seconds%60:00}.{(int)(seconds*100)%100:00}";
     }
@@ -65,7 +66,7 @@ namespace Codice.UI
             float value=maximum>0?Mathf.Clamp01(health/maximum):0;
             if(previous<0||value>previous) Ghost.fillAmount=value;
             else if(value<previous)delay=Time.unscaledTime+.35f;
-            Fill.fillAmount=value;previous=value;Caption.text=caption??$"{Mathf.CeilToInt(health)} / {maximum:0}";
+            Fill.fillAmount=value;previous=value;Caption.text=caption??$"{Mathf.CeilToInt(health)} / {Mathf.CeilToInt(maximum)}";
         }
         void Update(){if(Time.unscaledTime>=delay)Ghost.fillAmount=Mathf.Lerp(Ghost.fillAmount,Fill.fillAmount,1-Mathf.Exp(-7*Time.unscaledDeltaTime));}
     }

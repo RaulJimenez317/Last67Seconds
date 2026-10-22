@@ -45,10 +45,21 @@ namespace Codice.Enemies
                 var marker = spawnPoints[next % spawnPoints.Length];
                 if (!marker || !NavMesh.SamplePosition(marker.position, out var position, 2, NavMesh.AllAreas))
                 { Debug.LogError("Enemy spawn is outside the navigation mesh.", this); return; }
-                var enemy = Instantiate(prefabs[(int)composition[next]], position.position, marker.rotation, transform);
+                var selected=prefabs[(int)composition[next]];
+                if(level>=2&&next%3==1){var variant=Resources.Load<BasicEnemy>("EnemyVariants/"+composition[next]);if(variant)selected=variant;}
+                string extra=ExtraEnemy(level,next,Total);
+                if(extra!=null){var native=Resources.Load<BasicEnemy>("EnemyVariants/"+extra);if(native)selected=native;}
+                var enemy = Instantiate(selected, position.position, marker.rotation, transform);
                 enemy.Initialize(player, level); enemy.Died += OnDefeated; spawned[next++] = enemy;
             }
         }
+        public static string ExtraEnemy(int round,int index,int total)
+        {
+            if(round%5==4&&index==total-1)return "DungeonSkeleton";
+            if(round>=3&&index%4==2)return round>=6&&index%8==6?"TurtleShell":"Slime";
+            return null;
+        }
+        public void ApplyLan(int total,int defeated){composition=new EnemyKind[Mathf.Clamp(total,0,200)];Defeated=defeated;}
         void OnDefeated(BasicEnemy enemy)
         {
             enemy.Died -= OnDefeated; Defeated++;

@@ -31,8 +31,8 @@ public static class FinalArenaChecks
         { File.WriteAllText(Report, "FAILED: save scene edits before checks"); return; }
         File.WriteAllText(Report, "Final arena regression\n");
         Require(EditorBuildSettings.scenes.Any(s => s.enabled && s.path == "Assets/00_Scenes/Maps/FinalArena.unity"), "final scene enabled in build settings");
-        EditorSceneManager.OpenScene("Assets/00_Scenes/Maps/Coliseo.unity");
-        PlayerPrefs.SetInt("Codice.TestRound", 19);
+        EditorSceneManager.OpenScene("Assets/00_Scenes/Maps/"+RoundRules.SceneForRound(RoundRules.FinalRound-1)+".unity");
+        PlayerPrefs.SetInt("Codice.TestRound", RoundRules.FinalRound-1);
         SessionState.SetBool("FinalArenaChecks.Play", true);
         EditorApplication.isPlaying = true;
     }
@@ -57,19 +57,19 @@ public static class FinalArenaChecks
             double end = EditorApplication.timeSinceStartup + 40;
             while (director.Phase == RunPhase.Combat || director.Phase == RunPhase.Shop)
             {
-                if (EditorApplication.timeSinceStartup > end) throw new Exception("Round 19 stuck");
+                if (EditorApplication.timeSinceStartup > end) throw new Exception("Pre-final round stuck");
                 foreach (var enemy in context.dungeon.GetComponentsInChildren<BasicEnemy>())
                     if (enemy.IsAlive) enemy.ReceiveDamage(new DamageInfo { amount = 999999, source = director.Player.gameObject, ignoreGuard = true });
                 if (director.Phase == RunPhase.Shop) context.dungeon.merchant.ContinueRound();
                 await Task.Delay(30);
             }
-            Require(context.portal.Available, "round 19 portal available");
+            Require(context.portal.Available, "pre-final portal available");
             string inventory = director.Player.State.Capture();
             Require(director.Travel(), "travel accepted");
             Require(!director.Travel(), "duplicate travel rejected");
             await Until(() => SceneManager.GetActiveScene().name == "FinalArena" && director.Player && director.CombatActive);
             context = Object.FindFirstObjectByType<RunScene>();
-            Require(director.Level == 20 && context.arena.ActiveBoss, "round 20 boss spawned");
+            Require(director.Level == RoundRules.FinalRound && context.arena.ActiveBoss, "final round boss spawned");
             Require(director.Player.State.Capture() == inventory, "player state preserved");
             context.arena.ActiveBoss.SetPaused(true);
             director.Player.enabled = false;

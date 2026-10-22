@@ -19,6 +19,11 @@ MonoBehaviour:
   dust: {fileID: 8229131354266074381, guid: 1b3bf8b6aaabe704aae9878b01a0b3c9, type: 3}
   explosion: {fileID: 3483167809352569295, guid: f33d43daf2d54ac40bd4a7c1c1b41fc4, type: 3}
   muzzle: {fileID: 3142319861781031627, guid: 5c677fd2f9e00f248ba585cfb75d336f, type: 3}
+  blood: {fileID: 6272116072318430558, guid: 5653e5aebfc618f41b4368f9203f1031, type: 3}
+  gunSmoke: {fileID: 5726469879118295598, guid: ea15ba35b559c864e9e0c7d5d8b0b28c, type: 3}
+  magicProjectile: {fileID: 7951562869243006252, guid: 4d4d20227e0d0f542a9c8f0b274451ae, type: 3}
+  swordSparks: {fileID: 6446323357257136046, guid: 54df5cfcf24cb4949a1d69132b5d3777, type: 3}
+  magicCast: {fileID: 5931106303272965287, guid: 1f1194045bc7d434385546bd4d6afff9, type: 3}
   passiveModels:
   - {fileID: 3418999981327539045, guid: 168e947ee38c3bc449d0fafb01339f4f, type: 3}
   - {fileID: 982207809521724122, guid: 03539880a33f71d40b031bb0cff6071d, type: 3}

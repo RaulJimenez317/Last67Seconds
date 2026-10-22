@@ -108,7 +108,7 @@ public static class PresentationSetup
             output.EnsureQuaternionContinuity();return output;
         }finally{Object.DestroyImmediate(source);Object.DestroyImmediate(target);}
     }
-    static GameObject Effect(string sourceName,string name)
+    public static GameObject Effect(string sourceName,string name)
     {
         string path=Output+"/Effects/"+name+".prefab";var existing=AssetDatabase.LoadAssetAtPath<GameObject>(path);if(existing)return existing;
         var root=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/06_Effects/Magic effects pack/Prefabs/"+sourceName+".prefab"));root.name=name;

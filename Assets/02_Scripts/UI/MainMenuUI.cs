@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 namespace Codice.UI
 {
-    public sealed class MainMenuUI : MonoBehaviour
+    public sealed partial class MainMenuUI : MonoBehaviour
     {
         RectTransform home,options,classes;
         Text values,displayMode;
@@ -34,6 +34,9 @@ namespace Codice.UI
             var first=Button(home,"INICIAR JUEGO",80,580,620,78,()=>ShowClasses(true),true);
             Button(home,"OPCIONES",80,686,295,62,()=>ShowOptions(true));
             Button(home,"SALIR",405,686,295,62,RunNavigation.Quit);
+            Button(home,"TRUCOS",80,765,620,52,()=>ShowCheats(true));
+            BuildCheats(root.transform);
+            Button(home,"COOPERATIVO LAN",820,765,620,52,Codice.Multiplayer.LanSession.Open);
             var art=UIWidgets.Rect(home,"Relics",920,140,620,620).gameObject.AddComponent<RawImage>();
             art.gameObject.AddComponent<MenuRelics>().Initialize(art);
             var caption=Label(home,"Relic caption",920,740,620,32,20,Gold,"RELIQUIAS DE LAS CENIZAS");caption.alignment=TextAlignmentOptions.Center;
@@ -56,16 +59,16 @@ namespace Codice.UI
             Label(classes,"Chapter",80,35,1520,35,18,Gold,"LAST67SECONDS  /  NUEVO DESCENSO");
             Label(classes,"Title",75,115,1520,90,60,Cream,"Elige quién desafía las cenizas.");
             Label(classes,"Hint",80,220,1520,55,24,Muted,"Cada clase empieza con su propia arma. Podrás encontrar y comprar otras durante la partida.");
-            string[] names={"CABALLERO","ARQUERO","TANQUE"};
-            string[] stats={"120 VIDA   /   VELOCIDAD 6.5\n\nEspada • Daño equilibrado\nClic izquierdo: atacar\nMantén clic derecho: escudo\nBloquea el 50% del daño frontal.","100 VIDA   /   VELOCIDAD 8\n\nArco • Alto daño por flecha\nClic izquierdo: disparar\nCada disparo consume munición.\nLas flechas se regeneran." ,"180 VIDA   /   VELOCIDAD 4.8\n\nMazo • Golpe en área frontal\nClic izquierdo: atacar\nGolpea a varios enemigos cercanos.\nMás resistencia, menos movilidad."};
-            var kinds=new[]{Codice.Characters.PlayerClass.Warrior,Codice.Characters.PlayerClass.Archer,Codice.Characters.PlayerClass.Tank};
-            for(int i=0;i<3;i++)
+            string[] names={"CABALLERO","ARQUERO","TANQUE","MAGO","SHINOBI"};
+            string[] stats={"120 VIDA   /   VELOCIDAD 6.5\n\nEspada • Daño equilibrado\nClic izquierdo: atacar\nMantén clic derecho: escudo\nBloquea el 50% del daño frontal.","100 VIDA   /   VELOCIDAD 8\n\nArco • Alto daño por flecha\nClic izquierdo: disparar\nCada disparo consume munición.\nLas flechas se regeneran." ,"180 VIDA   /   VELOCIDAD 4.8\n\nMazo • Golpe en área frontal\nClic izquierdo: atacar\nGolpea a varios enemigos cercanos.\nMás resistencia, menos movilidad.","100 VIDA / VELOCIDAD 6.5\n\nBastón • Magia a distancia\n100 MANÁ (otras clases: 60)\nDisparo: 20 • Especial: 40\nRegenera 8/s tras 1.5 s.","120 VIDA / VELOCIDAD 6.5\n\nKatana y shuriken\nClic derecho: parry\nPerfecto: sin daño ni gasto\nGuardia: reduce daño,\ngasta postura. Q: tajos rojos."};
+            var kinds=new[]{Codice.Characters.PlayerClass.Warrior,Codice.Characters.PlayerClass.Archer,Codice.Characters.PlayerClass.Tank,Codice.Characters.PlayerClass.Mage,Codice.Characters.PlayerClass.Shinobi};
+            for(int i=0;i<5;i++)
             {
-                int index=i;float x=80+i*515;
-                var card=UIWidgets.Image(classes,names[i]+" card",x,320,490,385,new Color(.07f,.085f,.12f));
-                Label(card.transform,"Name",25,25,440,50,32,Gold,names[i]);
-                Label(card.transform,"Stats",25,100,440,260,23,Cream,stats[i]);
-                Button(classes,"JUGAR COMO "+names[i],x,730,490,65,()=>RunNavigation.StartGame(kinds[index]),true);
+                int index=i;float x=80+i*304;
+                var card=UIWidgets.Image(classes,names[i]+" card",x,320,288,385,new Color(.07f,.085f,.12f));
+                Label(card.transform,"Name",16,25,256,50,25,Gold,names[i]);
+                Label(card.transform,"Stats",16,100,256,260,18,Cream,stats[i]);
+                Button(classes,"JUGAR COMO "+names[i],x,730,288,75,()=>RunNavigation.StartGame(kinds[index],CheatRound),true);
             }
             Button(classes,"VOLVER",80,825,260,55,()=>ShowClasses(false));
             Label(classes,"Controls",385,827,1200,50,20,Muted,"WASD: moverte   •   E: interactuar   •   Q: especial   •   T / Y / U: pasivas");
@@ -88,6 +91,7 @@ namespace Codice.UI
         }
         void Update()
         {
+            if(cheats&&cheats.gameObject.activeSelf&&Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame){ShowCheats(false);return;}
             if(classes && classes.gameObject.activeSelf && Keyboard.current!=null && Keyboard.current.escapeKey.wasPressedThisFrame)ShowClasses(false);
             if(options && options.gameObject.activeSelf && Keyboard.current!=null && Keyboard.current.escapeKey.wasPressedThisFrame)ShowOptions(false);
             if(displayMode)displayMode.text=Screen.fullScreen?"PANTALLA COMPLETA  •  CAMBIAR":"MODO VENTANA  •  CAMBIAR";

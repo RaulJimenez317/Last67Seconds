@@ -6,17 +6,30 @@ namespace Codice.Mechanics
 {
     public static class RoundRules
     {
-        public const int FinalRound = 20;
+        public const int FinalRound = 25;
         public static bool IsFinal(int round) => round == FinalRound;
         public static bool IsBoss(int round) => round >= 5 && round % 5 == 0;
         public static bool IsRegularBoss(int round) => IsBoss(round) && !IsFinal(round);
-        public static bool IsColiseumRound(int round) => round >= 6 && round <= 19 && ((round - 1) / 5) % 2 == 1;
+        public static bool IsColiseumRound(int round) => round >= 6 && round <= 10;
         public static string SceneForRound(int round)
         {
             if (IsFinal(round)) return "FinalArena";
+            if (round >= 11 && round <= 15) return "Criptas";
+            if (round >= 16 && round <= 20) return "Bastion";
             return IsColiseumRound(round) ? "Coliseo" : "Calabozo";
         }
-        public static bool OpensPortalAfter(int round) => round == 5 || round == 10 || round == 15 || round == 19;
+        public static bool OpensPortalAfter(int round) => round > 0 && round < FinalRound && SceneForRound(round) != SceneForRound(round + 1);
+        public static string MapTitle(int round)
+        {
+            switch(SceneForRound(round))
+            {
+                case "FinalArena": return "ARENA FINAL";
+                case "Coliseo": return "COLISEO";
+                case "Criptas": return "CRIPTAS DEL ECO";
+                case "Bastion": return "BASTIÓN DE CENIZA";
+                default: return "CALABOZO";
+            }
+        }
 
         // Total per normal wave, not the simultaneous population controlled by the encounter.
         public static int EnemyLimit(int round)
